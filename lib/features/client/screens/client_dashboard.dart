@@ -10,56 +10,69 @@ class ClientDashboardScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF1F6FA),
       bottomNavigationBar: _bottomNav(),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(16),
-          child: ListView(
-            children: [
-              const DashboardHeader(),
-              const SizedBox(height: 20),
+          children: [
+            /// HEADER + SEARCH (UNCHANGED)
+            const DashboardHeader(),
+            const SizedBox(height: 20),
 
-              /// BANNER
-              Container(
-                height: 130,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Find Best Lawyers\nwith us',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Image.asset('assets/images/lawyers.png', height: 100),
-                  ],
-                ),
-              ),
+            /// ✅ FIXED BANNER
+            _banner(),
+            const SizedBox(height: 24),
 
-              const SizedBox(height: 24),
+            /// SERVICES
+            _sectionTitle('Services'),
+            _servicesGrid(),
+            const SizedBox(height: 24),
 
-              /// SERVICES
-              _sectionTitle('Services'),
-              _servicesGrid(),
+            /// ✅ LAWYER CATEGORIES (GRID – NOT ROW)
+            _sectionTitle('Lawyers'),
+            _lawyerCategoryGrid(),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-              /// LAWYERS
-              _sectionTitle('Lawyers'),
-              _lawyersRow(),
-            ],
-          ),
+            /// BOTTOM CATEGORIES
+            // _categoriesRow(),
+            // const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
+  // ================= BANNER =================
+  Widget _banner() {
+    return Container(
+      height: 130,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'Find Best Lawyers\nwith us',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Image.asset(
+            'assets/images/layer1.png',
+            height: 90,
+            fit: BoxFit.contain,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= SECTION TITLE =================
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -73,6 +86,7 @@ class ClientDashboardScreen extends StatelessWidget {
     );
   }
 
+  // ================= SERVICES GRID =================
   Widget _servicesGrid() {
     final services = [
       ('Business Setup', Icons.bar_chart),
@@ -80,7 +94,10 @@ class ClientDashboardScreen extends StatelessWidget {
       ('Disputes', Icons.gavel),
       ('Consultant', Icons.headset_mic),
       ('Legal Advice', Icons.chat),
-      ('See All', Icons.arrow_forward),
+      ('Legal Info', Icons.account_balance),
+      ('Cross Border', Icons.public),
+      ('Legal Aid', Icons.balance),
+      ('Traffic Laws', Icons.traffic),
     ];
 
     return Container(
@@ -119,28 +136,98 @@ class ClientDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _lawyersRow() {
-    return SizedBox(
-      height: 90,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 5,
-        itemBuilder: (_, i) => Container(
-          width: 80,
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Image.asset('assets/images/lawyer_$i.png'),
-        ),
+  // ================= ✅ LAWYER CATEGORY GRID =================
+  Widget _lawyerCategoryGrid() {
+    final lawyers = [
+      ('Criminal', 'assets/images/criminal.png'),
+      ('Civil', 'assets/images/civil.png'),
+      ('Corporate', 'assets/images/corporate.png'),
+      ('Public Interest', 'assets/images/public.png'),
+      ('Immigration', 'assets/images/immigration.png'),
+      ('Intellectual Property', 'assets/images/property.png'),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: lawyers.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 0.85,
       ),
+      itemBuilder: (_, i) {
+        return Column(
+          children: [
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.all(10),
+              child: Image.asset(
+                lawyers[i].$2,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              lawyers[i].$1,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
+  // ================= BOTTOM CATEGORY ROW =================
+  // Widget _categoriesRow() {
+  //   final categories = [
+  //     'Public Interest',
+  //     'Immigration',
+  //     'Intellectual Property',
+  //   ];
+  //
+  //   return SizedBox(
+  //     height: 100,
+  //     child: ListView.builder(
+  //       scrollDirection: Axis.horizontal,
+  //       itemCount: categories.length,
+  //       itemBuilder: (_, i) {
+  //         return Container(
+  //           width: 140,
+  //           margin: const EdgeInsets.only(right: 12),
+  //           padding: const EdgeInsets.all(12),
+  //           decoration: BoxDecoration(
+  //             color: Colors.white,
+  //             borderRadius: BorderRadius.circular(16),
+  //           ),
+  //           child: Center(
+  //             child: Text(
+  //               categories[i],
+  //               textAlign: TextAlign.center,
+  //               style: const TextStyle(fontWeight: FontWeight.w600),
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
+
+  // ================= BOTTOM NAV =================
   Widget _bottomNav() {
     return BottomNavigationBar(
       currentIndex: 0,
+      showSelectedLabels: false,
+      showUnselectedLabels: false,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
         BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: ''),

@@ -133,13 +133,68 @@ class _PageTwo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _BasePage(
-      image: 'assets/images/Frame.png',
-      text:
-      'Enter the name of your city and the type of consultant you’re looking for, and our AI bot will select the best candidate.',
+    final height = MediaQuery.of(context).size.height;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          const SizedBox(height: 155),
+
+          /// 🔥 STACKED ILLUSTRATION (FIXED HEIGHT)
+          SizedBox(
+            height: height * 0.35, // 👈 same visual height as other pages
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                /// Top-right image (human + documents)
+                Positioned(
+                  top: 10,
+                  right: 8,
+                  child: Image.asset(
+                    'assets/images/Frame (1).png',
+                    width: 200,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+
+                /// Bottom-left image (robot)
+                Positioned(
+                  bottom: 20,
+                  left: 20,
+                  child: Image.asset(
+                    'assets/images/Frame.png',
+                    width: 150,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          /// TEXT
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              'Enter the name of your city and the type of consultant you’re looking for, and our AI bot will select the best candidate.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+
+          const Spacer(flex: 2),
+        ],
+      ),
     );
   }
 }
+
 
 class _PageThree extends StatelessWidget {
   const _PageThree();
@@ -166,30 +221,42 @@ class _BasePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          const SizedBox(height: 40),
+          const SizedBox(height: 180),
 
-          Expanded(
-            flex: 5,
-            child: Image.asset(
-              image,
-              fit: BoxFit.contain,
+          /// IMAGE (FIXED + CONSISTENT SIZE)
+          SizedBox(
+            height: height * 0.32, // 👈 controls image size
+            child: Center(
+              child: Image.asset(
+                image,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
+          /// TEXT (CONTROLLED WIDTH)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Colors.black87,
+              ),
             ),
           ),
+
+          const Spacer(flex: 2), // pushes content up cleanly
         ],
       ),
     );
