@@ -77,17 +77,29 @@ class NewRequestsScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.check_circle, color: Colors.green),
                         onPressed: () async {
-                          await doc.reference.update({'status': 'accepted'});
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request accepted')));
+                          await doc.reference.update({
+                            'status': 'accepted',
+                            'acceptedAt': FieldValue.serverTimestamp(), // Track when it became a case
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Request accepted and moved to Active Cases')),
+                          );
                         },
                       ),
 
-                      /// ❌ REJECT
+                      /// ❌ REJECT BUTTON
                       IconButton(
                         icon: const Icon(Icons.cancel, color: Colors.redAccent),
                         onPressed: () async {
-                          await doc.reference.update({'status': 'rejected'});
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request rejected')));
+                          await doc.reference.update({
+                            'status': 'rejected',
+                            'rejectedAt': FieldValue.serverTimestamp(),
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Request rejected')),
+                          );
                         },
                       ),
                     ],
