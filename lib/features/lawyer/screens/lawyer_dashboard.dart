@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:legal_case_manager/common/widgets/dashboard_widgets.dart';
 import 'new_requests_screen.dart';
 import '../../../features/lawyer/screens/lawyer_profile_edit_screen.dart';
+import '../../../features/lawyer/screens/active_cases_screen.dart';
+// Import your schedule list screen
+import 'schedule_view_screen.dart';
 
 class LawyerDashboardScreen extends StatelessWidget {
   const LawyerDashboardScreen({super.key});
@@ -52,16 +55,28 @@ class LawyerDashboardScreen extends StatelessWidget {
               GridView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                 ),
                 children: [
                   _newRequestsCard(context),
-                  _actionCard('Active Cases', Icons.folder),
-                  _actionCard('Schedule', Icons.calendar_month),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ActiveCasesScreen()),
+                    ),
+                    child: _actionCard('Active Cases', Icons.folder),
+                  ),
+                  // UPDATED: Now navigates to the Schedule container page
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ScheduleViewScreen()),
+                    ),
+                    child: _actionCard('Schedule', Icons.calendar_month),
+                  ),
                   _actionCard('Earnings', Icons.account_balance_wallet),
                 ],
               ),
@@ -134,7 +149,6 @@ class LawyerDashboardScreen extends StatelessWidget {
     );
   }
 
-  // ================= NORMAL ACTION CARD =================
   Widget _actionCard(String title, IconData icon) {
     return Container(
       decoration: BoxDecoration(
@@ -170,9 +184,10 @@ class LawyerDashboardScreen extends StatelessWidget {
       currentIndex: 0,
       onTap: (index) {
         if (index == 2) {
+          final uid = FirebaseAuth.instance.currentUser!.uid;
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const LawyerProfileEditScreen(lawyerId: '',)),
+            MaterialPageRoute(builder: (_) => LawyerProfileEditScreen(lawyerId: uid)),
           );
         }
       },
