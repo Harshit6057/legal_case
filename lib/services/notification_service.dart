@@ -1,12 +1,16 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'dart:convert';
+import 'package:flutter/material.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
+  static GlobalKey<NavigatorState>? navigatorKey; // For navigation from background
 
-  static Future<void> init() async {
+  static Future<void> init(GlobalKey<NavigatorState> key) async {
+    navigatorKey = key;
     tz.initializeTimeZones();
     const AndroidInitializationSettings initializationSettingsAndroid =
     AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -14,28 +18,47 @@ class NotificationService {
     const InitializationSettings initializationSettings =
     InitializationSettings(android: initializationSettingsAndroid);
 
-    await _notificationsPlugin.initialize(initializationSettings);
+    await _notificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.payload != null) {
+          // ✅ Navigate to the details page when notification is clicked
+          navigatorKey?.currentState?.pushNamed('/caseDetails', arguments: response.payload);
+        }
+      },
+    );
   }
 
-  static Future<void> scheduleAlarm(int id, String title, DateTime scheduledTime) async {
+  // Inside lib/services/notification_service.dart
+
+  static Future<void> scheduleAlarm({
+    required int id,
+    required String clientName,
+    required String caseNumber,
+    required String description,
+    required DateTime scheduledTime,
+    required String caseId,
+  }) async {
     await _notificationsPlugin.zonedSchedule(
       id,
-      'Case Alarm',
-      'It is time for: $title',
+      'Upcoming Case: $clientName ($caseNumber)', // Summary view: Only Name and Case Number
+      description, // Detailed view: Full description shown here
       tz.TZDateTime.from(scheduledTime, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'case_alarm_channel',
           'Case Alarms',
+          channelDescription: 'Detailed case reminders',
           importance: Importance.max,
           priority: Priority.high,
-          fullScreenIntent: true, // Makes it behave like an alarm
-          audioAttributesUsage: AudioAttributesUsage.alarm,
+          // ✅ This style allows showing the full description when expanded
+          styleInformation: BigTextStyleInformation(''),
+          fullScreenIntent: true,
         ),
       ),
+      payload: caseId, // ✅ Store caseId in payload
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-      UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }

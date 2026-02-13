@@ -7,6 +7,8 @@ import 'package:phonepe_payment_sdk/phonepe_payment_sdk.dart'; // New Import
 import 'dart:convert';
 import 'package:crypto/crypto.dart'; // For checksum
 import '../../chat/screens/chat_screen.dart';
+import 'package:legal_case_manager/features/lawyer/screens/earnings_screen.dart';
+
 
 class LawyerProfileViewScreen extends StatefulWidget {
   final String lawyerId;
@@ -31,40 +33,50 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
     _initPhonePe();
   }
 
-  void _startPhonePePayment(int amount) async {
-    // Use a cleaner ID format: 'TXN' + timestamp
-    String transactionId = "TXN${DateTime.now().millisecondsSinceEpoch}";
+  // ✅ Updated signature to accept amount and hearing type
+  void _startPhonePePayment(int amount, String hearingType) async {
+    // Use a cleaner ID format: 'VIRT_TXN' + timestamp for virtual tracking
+    String transactionId = "VIRT_TXN${DateTime.now().millisecondsSinceEpoch}";
 
-    final requestData = {
-      "merchantId": merchantId,
-      "merchantTransactionId": transactionId, // Fixed: Ensures alphanumeric format
-      "merchantUserId": FirebaseAuth.instance.currentUser?.uid ?? "user123",
-      "amount": amount * 100,
-      "mobileNumber": "9999999999",
-      "callbackUrl": callback,
-      "paymentConfiguration": {"type": "PAY_PAGE"}
-    };
-
-    String jsonString = json.encode(requestData);
-    String base64Body = base64.encode(utf8.encode(jsonString));
-    String checksum = "${sha256.convert(utf8.encode(base64Body + "/pg/v1/pay" + saltKey)).toString()}###$saltIndex";
-
-    try {
-      // Ensure you are using positional arguments correctly for SDK 3.0.2
-      var result = await PhonePePaymentSdk.startTransaction(jsonString, checksum);
-
-      if (result != null) {
-        String status = result['status'].toString();
-        if (status == 'SUCCESS') {
-          _onPaymentSuccess(transactionId);
-        } else {
-          _onPaymentError("Payment Status: $status");
-        }
-      }
-    } catch (e) {
-      _onPaymentError(e.toString());
-    }
+    // ✅ SIMULATING SUCCESS FOR VIRTUAL MONEY
+    // Since you are using virtual money, we bypass the PhonePe SDK call entirely
+    // and jump straight to logging the success in your database.
+    _onPaymentSuccess(transactionId, amount, hearingType);
   }
+  // void _startPhonePePayment(int amount) async {
+  //   // Use a cleaner ID format: 'TXN' + timestamp
+  //   String transactionId = "TXN${DateTime.now().millisecondsSinceEpoch}";
+  //
+  //   final requestData = {
+  //     "merchantId": merchantId,
+  //     "merchantTransactionId": transactionId, // Fixed: Ensures alphanumeric format
+  //     "merchantUserId": FirebaseAuth.instance.currentUser?.uid ?? "user123",
+  //     "amount": amount * 100,
+  //     "mobileNumber": "9999999999",
+  //     "callbackUrl": callback,
+  //     "paymentConfiguration": {"type": "PAY_PAGE"}
+  //   };
+  //
+  //   String jsonString = json.encode(requestData);
+  //   String base64Body = base64.encode(utf8.encode(jsonString));
+  //   String checksum = "${sha256.convert(utf8.encode(base64Body + "/pg/v1/pay" + saltKey)).toString()}###$saltIndex";
+  //
+  //   try {
+  //     // Ensure you are using positional arguments correctly for SDK 3.0.2
+  //     var result = await PhonePePaymentSdk.startTransaction(jsonString, checksum);
+  //
+  //     if (result != null) {
+  //       String status = result['status'].toString();
+  //       if (status == 'SUCCESS') {
+  //         _onPaymentSuccess(transactionId, amount, "Normal Hearing");
+  //       } else {
+  //         _onPaymentError("Payment Status: $status");
+  //       }
+  //     }
+  //   } catch (e) {
+  //     _onPaymentError(e.toString());
+  //   }
+  // }
 
 // Ensure init matches the test environment exactly
   void _initPhonePe() {
@@ -76,11 +88,90 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
     });
   }
 
-  void _onPaymentSuccess(String txId) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Payment Successful! ID: $txId"), backgroundColor: Colors.green),
+  void _showHearingTypeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Select Hearing Type"),
+        content: const Text("Choose the urgency of your legal hearing."),
+        actions: [
+          ListTile(
+            title: const Text("Normal Hearing (₹5,000)"),
+            onTap: () {
+              Navigator.pop(context);
+              // ✅ This now works with the updated signature
+              _startPhonePePayment(5000, "Normal Hearing");
+            },
+          ),
+          ListTile(
+            title: const Text("Fast Hearing (₹10,000)"),
+            onTap: () {
+              Navigator.pop(context);
+              // ✅ This now works with the updated signature
+              _startPhonePePayment(10000, "Fast Hearing");
+            },
+          ),
+        ],
+      ),
     );
   }
+
+// Update your payment success logic to save to Firestore
+//   void _onPaymentSuccess(String txId, int amount, String hearingType) async {
+//     final user = FirebaseAuth.instance.currentUser!;
+//
+//     await FirebaseFirestore.instance
+//         .collection('users')
+//         .doc(widget.lawyerId)
+//         .collection('earnings')
+//         .add({
+//       'amount': amount,
+//       'hearingType': hearingType,
+//       'clientName': user.displayName ?? "Client",
+//       'timestamp': FieldValue.serverTimestamp(),
+//       'transactionId': txId,
+//     });
+//
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       const SnackBar(content: Text("Payment Successful! Earning logged."), backgroundColor: Colors.green),
+//     );
+//   }
+
+  // ✅ This logs the virtual payment to the lawyer's earnings sub-collection
+  void _onPaymentSuccess(String txId, int amount, String hearingType) async {
+    final user = FirebaseAuth.instance.currentUser!;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.lawyerId)
+          .collection('earnings') // ✅ Saved for the lawyer's Earnings Screen
+          .add({
+        'amount': amount,
+        'hearingType': hearingType,
+        'clientName': user.displayName ?? "Client",
+        'timestamp': FieldValue.serverTimestamp(),
+        'transactionId': txId,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Virtual Payment of ₹$amount successful!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      _onPaymentError("Database Error: $e");
+    }
+  }
+
+  // void _onPaymentSuccess(String txId) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(content: Text("Payment Successful! ID: $txId"), backgroundColor: Colors.green),
+  //   );
+  // }
 
   void _onPaymentError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -175,8 +266,17 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                             style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.blue)),
                       ),
                       const SizedBox(height: 12),
-                      Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                      Text('$specialization Lawyer', style: const TextStyle(color: Colors.blueGrey, fontSize: 14)),
+                      // Capitalizing 'name' and 'specialization' directly in the Text widgets
+                      Text(
+                          name.isNotEmpty ? "${name[0].toUpperCase()}${name.substring(1)}" : "",
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
+                      ),
+                      Text(
+                          specialization.isNotEmpty
+                              ? "${specialization[0].toUpperCase()}${specialization.substring(1)} Lawyer"
+                              : "Lawyer",
+                          style: const TextStyle(color: Colors.blueGrey, fontSize: 14)
+                      ),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -247,7 +347,9 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, padding: const EdgeInsets.symmetric(vertical: 15),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
                         onPressed: () => _showBookingDialog(context, data),
@@ -255,12 +357,15 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    Expanded( // ✅ Changed from GestureDetector to ElevatedButton
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 15),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green, // Color for payments
+                          padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
-                        onPressed: () => _startPhonePePayment(500), // Updated to PhonePe
+                        // ✅ Triggers the selection dialog (Normal vs Fast)
+                        onPressed: () => _showHearingTypeDialog(context),
                         child: const Text("Pay Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
@@ -404,4 +509,6 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
+
+
 }

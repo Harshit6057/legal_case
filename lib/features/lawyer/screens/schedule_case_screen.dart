@@ -56,7 +56,16 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
     );
 
     try {
-      // 1. Update Firestore status and date
+      // Fetch the latest data to get description for the notification
+      final docSnap = await FirebaseFirestore.instance
+          .collection('booking_requests')
+          .doc(widget.caseId)
+          .get();
+
+      final data = docSnap.data()!;
+      final description = data['description'] ?? 'No description provided';
+      final clientName = data['clientName'] ?? 'Client';
+
       await FirebaseFirestore.instance
           .collection('booking_requests')
           .doc(widget.caseId)
@@ -65,11 +74,14 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
         'status': 'scheduled',
       });
 
-      // 2. Trigger the local notification alarm
+      // ✅ Trigger alarm with detailed parameters
       await NotificationService.scheduleAlarm(
-        widget.caseId.hashCode,
-        "Case Appointment",
-        finalScheduledDateTime,
+        id: widget.caseId.hashCode,
+        clientName: clientName,
+        caseNumber: widget.caseId.substring(0, 5).toUpperCase(), // Using ID fragment as case number
+        description: description,
+        scheduledTime: finalScheduledDateTime,
+        caseId: widget.caseId,
       );
 
       if (mounted) {

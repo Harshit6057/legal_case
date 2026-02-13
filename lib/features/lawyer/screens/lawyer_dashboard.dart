@@ -7,6 +7,9 @@ import '../../../features/lawyer/screens/lawyer_profile_edit_screen.dart';
 import '../../../features/lawyer/screens/active_cases_screen.dart';
 // Import your schedule list screen
 import 'schedule_view_screen.dart';
+import 'package:legal_case_manager/features/lawyer/screens/cases_history_screen.dart';
+import 'package:legal_case_manager/features/lawyer/screens/earnings_screen.dart';
+
 
 class LawyerDashboardScreen extends StatelessWidget {
   const LawyerDashboardScreen({super.key});
@@ -59,9 +62,13 @@ class LawyerDashboardScreen extends StatelessWidget {
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
+                  childAspectRatio: 1.1, // Adjusted for better fit
                 ),
                 children: [
+                  // 1. New Requests (Already has built-in GestureDetector)
                   _newRequestsCard(context),
+
+                  // 2. Active Cases
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
@@ -69,7 +76,8 @@ class LawyerDashboardScreen extends StatelessWidget {
                     ),
                     child: _actionCard('Active Cases', Icons.folder),
                   ),
-                  // UPDATED: Now navigates to the Schedule container page
+
+                  // 3. Schedule
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
@@ -77,7 +85,24 @@ class LawyerDashboardScreen extends StatelessWidget {
                     ),
                     child: _actionCard('Schedule', Icons.calendar_month),
                   ),
-                  _actionCard('Earnings', Icons.account_balance_wallet),
+
+                  // 4. Cases History (Now explicitly linked)
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CasesHistoryScreen()),
+                    ),
+                    child: _actionCard('Cases History', Icons.history),
+                  ),
+
+                  // 5. Earnings (Now clickable)
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EarningsScreen())
+                    ),
+                    child: _actionCard('Earnings', Icons.account_balance_wallet),
+                  ),
                 ],
               ),
             ],

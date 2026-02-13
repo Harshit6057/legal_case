@@ -49,8 +49,9 @@ class ScheduleViewScreen extends StatelessWidget {
               final DateTime date = timestamp.toDate();
 
               // Inside your ScheduleViewScreen's ListView.builder
+              // Inside ScheduleViewScreen's ListView.builder
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: ListTile(
                   leading: Container(
@@ -60,40 +61,74 @@ class ScheduleViewScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text("Feb", style: TextStyle(fontSize: 10)),
-                        Text("13", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(DateFormat('MMM').format(date), style: const TextStyle(fontSize: 10)), // Dynamic Month
+                        Text(DateFormat('dd').format(date), style: const TextStyle(fontWeight: FontWeight.bold)), // Dynamic Day
                       ],
                     ),
                   ),
                   title: Text(data['clientName'] ?? 'Client', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("Time: ${data['time']}"),
+                  subtitle: Text("Time: ${DateFormat('hh:mm a').format(date)}"), // Formatted Time
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // ✅ ADD CHAT BUTTON HERE
                       IconButton(
                         icon: const Icon(Icons.chat_bubble_outline, color: Colors.blue),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                otherUserId: data['clientId'],
-                                otherUserName: data['clientName'] ?? 'Client',
-                              ),
-                            ),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+                            otherUserId: data['clientId'], otherUserName: data['clientName'] ?? 'Client'))),
+                      ),
+                      // ✅ Calendar Button: Shows Date Picker for viewing/rescheduling
+                      IconButton(
+                        icon: const Icon(Icons.calendar_month, color: Colors.blue),
+                        onPressed: () async {
+                          await showDatePicker(
+                            context: context,
+                            initialDate: date,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
                           );
                         },
                       ),
-                      const Icon(Icons.calendar_month, color: Colors.blue),
+                      // ✅ Delete Button: Removes the schedule
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: () => _confirmDelete(context, scheduledCases[i].reference),
+                      ),
                     ],
                   ),
                 ),
               );
+
+
             },
           );
         },
+      ),
+    );
+
+
+
+  }
+
+
+  // Helper function for deletion
+  void _confirmDelete(BuildContext context, DocumentReference docRef) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Schedule?"),
+        content: const Text("This will remove the case from your active schedule."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              await docRef.update({'status': 'cancelled', 'scheduledDate': FieldValue.delete()});
+              Navigator.pop(context);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
