@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:legal_case_manager/features/chat/screens/chat_screen.dart';
+
 
 class ScheduleViewScreen extends StatelessWidget {
   const ScheduleViewScreen({super.key});
@@ -46,30 +48,47 @@ class ScheduleViewScreen extends StatelessWidget {
               if (timestamp == null) return const SizedBox();
               final DateTime date = timestamp.toDate();
 
+              // Inside your ScheduleViewScreen's ListView.builder
               return Card(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(DateFormat('MMM').format(date),
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                        Text(DateFormat('dd').format(date),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text("Feb", style: TextStyle(fontSize: 10)),
+                        Text("13", style: TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
-                  title: Text(data['clientName'] ?? 'Client',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("Time: ${DateFormat('hh:mm a').format(date)}"),
-                  trailing: const Icon(Icons.calendar_today, color: Colors.blue, size: 20),
+                  title: Text(data['clientName'] ?? 'Client', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("Time: ${data['time']}"),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ✅ ADD CHAT BUTTON HERE
+                      IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline, color: Colors.blue),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                otherUserId: data['clientId'],
+                                otherUserName: data['clientName'] ?? 'Client',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const Icon(Icons.calendar_month, color: Colors.blue),
+                    ],
+                  ),
                 ),
               );
             },

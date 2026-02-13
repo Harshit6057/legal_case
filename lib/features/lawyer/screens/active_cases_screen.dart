@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'schedule_case_screen.dart';
+import '../../chat/screens/chat_screen.dart'; // Ensure this path is correct
 
 class ActiveCasesScreen extends StatelessWidget {
   const ActiveCasesScreen({super.key});
@@ -36,12 +37,32 @@ class ActiveCasesScreen extends StatelessWidget {
                   leading: const CircleAvatar(child: Icon(Icons.folder)),
                   title: Text(data['clientName'] ?? 'Client'),
                   subtitle: Text(data['caseType'] ?? 'General Case'),
-                  trailing: ElevatedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => ScheduleCaseScreen(caseId: doc.id)),
-                    ),
-                    child: const Text("Schedule"),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ✅ ADDED: CHAT BUTTON
+                      IconButton(
+                        icon: const Icon(Icons.chat, color: Colors.blue),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                otherUserId: data['clientId'],
+                                otherUserName: data['clientName'] ?? 'Client',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ScheduleCaseScreen(caseId: doc.id)),
+                        ),
+                        child: const Text("Schedule"),
+                      ),
+                    ],
                   ),
                 ),
               );
