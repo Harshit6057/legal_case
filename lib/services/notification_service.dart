@@ -41,22 +41,28 @@ class NotificationService {
   }) async {
     await _notificationsPlugin.zonedSchedule(
       id,
-      'Upcoming Case: $clientName ($caseNumber)', // Summary view: Only Name and Case Number
-      description, // Detailed view: Full description shown here
+      'Upcoming Case: $clientName', // Title in collapsed view
+      'Case #$caseNumber', // Body in collapsed view
       tz.TZDateTime.from(scheduledTime, tz.local),
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
           'case_alarm_channel',
           'Case Alarms',
           channelDescription: 'Detailed case reminders',
           importance: Importance.max,
           priority: Priority.high,
-          // ✅ This style allows showing the full description when expanded
-          styleInformation: BigTextStyleInformation(''),
           fullScreenIntent: true,
+          // ✅ UPDATED: Gmail-style expandable content
+          styleInformation: BigTextStyleInformation(
+            description, // The full description shown when expanded
+            contentTitle: '<b>$clientName</b>', // Bold title when expanded
+            summaryText: 'Case No: $caseNumber', // Small text above the description
+            htmlFormatContent: true,
+            htmlFormatContentTitle: true,
+          ),
         ),
       ),
-      payload: caseId, // ✅ Store caseId in payload
+      payload: caseId,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );

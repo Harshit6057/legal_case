@@ -343,6 +343,7 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                 const SizedBox(height: 30),
 
                 // Action Buttons
+                // Action Buttons
                 Row(
                   children: [
                     Expanded(
@@ -352,21 +353,9 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
+                        // ✅ Only one button needed now
                         onPressed: () => _showBookingDialog(context, data),
                         child: const Text("Book Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded( // ✅ Changed from GestureDetector to ElevatedButton
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green, // Color for payments
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                        // ✅ Triggers the selection dialog (Normal vs Fast)
-                        onPressed: () => _showHearingTypeDialog(context),
-                        child: const Text("Pay Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -461,54 +450,133 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
 
   // Inside lib/features/lawyer/screens/lawyer_profile_view_screen.dart
 
+  // ✅ 1. Integrated Booking Dialog with Hearing Selection
   Future<void> _showBookingDialog(BuildContext context, Map<String, dynamic> lawyerData) async {
     final TextEditingController descriptionController = TextEditingController();
+    String? selectedHearing;
+    int amount = 0;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Describe Your Case"),
-        content: TextField(
-          controller: descriptionController,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: "Enter a brief description of your legal issue...",
-            border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder( // ✅ Allows radio button updates inside dialog
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text("Book Case & Select Hearing"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: "Enter a brief description of your legal issue...",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text("Select Hearing Type:", style: TextStyle(fontWeight: FontWeight.bold)),
+                RadioListTile<String>(
+                  title: const Text("Normal Hearing (₹5,000)"),
+                  value: "Normal Hearing",
+                  groupValue: selectedHearing,
+                  onChanged: (val) => setDialogState(() {
+                    selectedHearing = val;
+                    amount = 5000;
+                  }),
+                ),
+                RadioListTile<String>(
+                  title: const Text("Fast Hearing (₹10,000)"),
+                  value: "Fast Hearing",
+                  groupValue: selectedHearing,
+                  onChanged: (val) => setDialogState(() {
+                    selectedHearing = val;
+                    amount = 10000;
+                  }),
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (descriptionController.text.trim().isNotEmpty) {
-                _bookLawyer(context, lawyerData, descriptionController.text.trim());
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            ElevatedButton(
+              onPressed: () {
+                if (descriptionController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please describe your case")));
+                  return;
+                }
+                if (selectedHearing == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select a hearing type")));
+                  return;
+                }
+
+                // ✅ Trigger integrated booking and virtual payment
+                _bookLawyerWithPayment(
+                    context,
+                    lawyerData,
+                    descriptionController.text.trim(),
+                    selectedHearing!,
+                    amount
+                );
                 Navigator.pop(context);
-              }
-            },
-            child: const Text("Submit Request"),
-          ),
-        ],
+              },
+              child: const Text("Confirm Booking"),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _bookLawyer(BuildContext context, Map<String, dynamic> lawyerData, String description) async {
+// ✅ 2. Integrated Final Booking Function (Firestore Logging)
+  Future<void> _bookLawyerWithPayment(
+      BuildContext context,
+      Map<String, dynamic> lawyerData,
+      String description,
+      String hearingType,
+      int amount) async {
+
     final user = FirebaseAuth.instance.currentUser!;
+    final String txId = "VIRT_TXN${DateTime.now().millisecondsSinceEpoch}";
+
     try {
+      // 1. Log Case Details in booking_requests
       await FirebaseFirestore.instance.collection('booking_requests').add({
         'clientId': user.uid,
         'lawyerId': widget.lawyerId,
         'lawyerName': lawyerData['name'],
-        'clientName': user.displayName ?? "Client", // Ensure you store the client name
-        'description': description, // New field
+        'clientName': user.displayName ?? "Client",
+        'description': description,
         'status': 'pending',
+        'hearingType': hearingType,
+        'paymentAmount': amount,
+        'transactionId': txId,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Booking Request Sent!")));
+
+      // 2. Log Virtual Amount in Lawyer's Earnings
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.lawyerId)
+          .collection('earnings')
+          .add({
+        'amount': amount,
+        'hearingType': hearingType,
+        'clientName': user.displayName ?? "Client",
+        'timestamp': FieldValue.serverTimestamp(),
+        'transactionId': txId,
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text("Booking confirmed with ₹$amount $hearingType"),
+                backgroundColor: Colors.green
+            )
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      debugPrint("Booking Error: $e");
     }
   }
-
 
 }

@@ -7,6 +7,9 @@ import 'package:legal_case_manager/features/profile/screens/profile_screen.dart'
 import 'package:legal_case_manager/features/lawyer/screens/lawyer_profile_edit_screen.dart';
 import 'package:legal_case_manager/features/lawyer/screens/new_requests_screen.dart';
 import 'package:legal_case_manager/features/lawyer/screens/lawyer_conversation_screen.dart';
+import 'package:legal_case_manager/features/client/screens/client_conversations_screen.dart';
+import 'package:legal_case_manager/features/client/screens/client_request_status_screen.dart';
+
 
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({super.key});
@@ -112,25 +115,56 @@ class DashboardHeader extends StatelessWidget {
           ),
         ),
 
+        // Inside the Row of DashboardHeader
+
+        /// NOTIFICATION BUTTON
+        // Inside DashboardHeader IconButton for Notifications
         IconButton(
           icon: const Icon(Icons.notifications_none),
-          onPressed: () {
-            // Navigates to the screen where new booking requests are listed
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const NewRequestsScreen()),
-            );
+          onPressed: () async {
+            final userDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .get();
+
+            if (!userDoc.exists || !context.mounted) return;
+            final role = userDoc['role'];
+
+            if (role == 'lawyer') {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const NewRequestsScreen()));
+            } else {
+              // ✅ Clients now go to their Request Status page
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ClientRequestStatusScreen()));
+            }
           },
         ),
 
+        /// CHAT BUTTON
         IconButton(
           icon: const Icon(Icons.chat_bubble_outline),
-          onPressed: () {
-            // Navigates to a dedicated screen to view all active conversations
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LawyerConversationsScreen()),
-            );
+          onPressed: () async {
+            final userDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .get();
+
+            if (!userDoc.exists || !context.mounted) return; // ✅ Check existence
+
+            final role = userDoc['role'];
+
+            if (role == 'lawyer') {
+              // ✅ Lawyer opens unique client conversation list
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LawyerConversationsScreen()),
+              );
+            } else {
+              // ✅ Client opens their lawyer conversation list
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ClientConversationsScreen()),
+              );
+            }
           },
         ),
       ],
