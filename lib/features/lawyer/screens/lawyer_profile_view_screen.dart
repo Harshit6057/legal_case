@@ -603,19 +603,26 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
   }
 
 // ✅ 2. Integrated Final Booking Function (Firestore Logging)
+  // ✅ 2. Integrated Final Booking Function (Firestore Logging)
   Future<void> _bookLawyerWithPayment(
       BuildContext context,
       Map<String, dynamic> lawyerData,
       String description,
       String hearingType,
       int amount) async {
+
     final user = FirebaseAuth.instance.currentUser!;
-    final String txId = "VIRT_TXN${DateTime
-        .now()
-        .millisecondsSinceEpoch}";
+    final String txId = "VIRT_TXN${DateTime.now().millisecondsSinceEpoch}";
+
+    // Show a loading indicator while the database is working
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
     try {
-      // 1. Log Case Details in booking_requests
+      // 1. Log Case Details in booking_requests - ADDED await
       await FirebaseFirestore.instance.collection('booking_requests').add({
         'clientId': user.uid,
         'lawyerId': widget.lawyerId,
@@ -629,7 +636,7 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Log Virtual Amount in Lawyer's Earnings
+      // 2. Log Virtual Amount in Lawyer's Earnings - ADDED await
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.lawyerId)
@@ -642,11 +649,17 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
         'transactionId': txId,
       });
 
+      // Close the loading indicator
+      if (context.mounted) Navigator.pop(context);
+
       if (context.mounted) {
-        // ✅ Trigger the Success Popup
+        // ✅ SUCCESS POPUP NOW TRIGGERS AFTER SUCCESSFUL WRITE
         _showSuccessDialog(context, txId);
       }
     } catch (e) {
+      // Close loading indicator on error
+      if (context.mounted) Navigator.pop(context);
+
       debugPrint("Booking Error: $e");
       _onPaymentError("Failed to book: $e");
     }
