@@ -18,18 +18,27 @@ class _CaseNotesScreenState extends State<CaseNotesScreen> {
   Future<void> _addNote() async {
     if (_noteController.text.trim().isEmpty) return;
 
-    await FirebaseFirestore.instance
-        .collection('booking_requests')
-        .doc(widget.caseId)
-        .collection('notes')
-        .add({
-      'content': _noteController.text.trim(),
-      'lawyerId': FirebaseAuth.instance.currentUser!.uid,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    try {
+      await FirebaseFirestore.instance
+          .collection('booking_requests')
+          .doc(widget.caseId)
+          .collection('notes')
+          .add({
+        'content': _noteController.text.trim(),
+        'lawyerId': FirebaseAuth.instance.currentUser!.uid,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
-    _noteController.clear();
-    if (mounted) Navigator.pop(context); // Close dialog/bottom sheet
+      _noteController.clear();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint("Firestore Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Permission Error: Check your Firestore Rules")),
+        );
+      }
+    }
   }
 
   @override
@@ -54,11 +63,19 @@ class _CaseNotesScreenState extends State<CaseNotesScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: notes.length,
                   itemBuilder: (context, index) {
+                    final noteDoc = notes[index]; // 1. Get the document snapshot
                     final data = notes[index].data() as Map<String, dynamic>;
+                    final String noteId = noteDoc.id; // ✅ 2. Define noteId HERE
                     return Card(
                       child: ListTile(
                         title: Text(data['content']),
                         subtitle: Text(data['timestamp']?.toDate().toString() ?? "Just now"),
+
+                        // ✅ ADDED: Delete Button
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                          onPressed: () => _confirmDelete(noteId),
+                        ),
                       ),
                     );
                   },
@@ -95,9 +112,60 @@ class _CaseNotesScreenState extends State<CaseNotesScreen> {
             const SizedBox(height: 10),
             ElevatedButton(onPressed: _addNote, child: const Text("Save Note")),
             const SizedBox(height: 20),
+
+
           ],
         ),
       ),
     );
+  }
+
+  // ✅ Method to show Confirmation Dialog before deleting
+  void _confirmDelete(String noteId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Note?"),
+        content: const Text("This action cannot be undone. Are you sure?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteNote(noteId);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+// ✅ Method to delete the document from Firestore
+  Future<void> _deleteNote(String noteId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('booking_requests')
+          .doc(widget.caseId)
+          .collection('notes')
+          .doc(noteId)
+          .delete();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Note deleted successfully")),
+        );
+      }
+    } catch (e) {
+      debugPrint("Delete Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error deleting note")),
+        );
+      }
+    }
   }
 }

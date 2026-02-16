@@ -16,7 +16,8 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
   TimeOfDay? _selectedTime;
   String? _clientName;
   String? _clientId;
-  bool _isDataLoaded = false; // Added to track loading state
+  String? _caseDescription;
+  bool _isDataLoaded = false;
 
   @override
   void initState() {
@@ -36,7 +37,8 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
         setState(() {
           _clientName = data['clientName'];
           _clientId = data['clientId'];
-          _isDataLoaded = true; // Mark as loaded
+          _caseDescription = data['description'];
+          _isDataLoaded = true;
         });
       }
     } catch (e) {
@@ -55,17 +57,15 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
       _selectedTime!.minute,
     );
 
+    // ✅ Safety Check: Prevent scheduling in the past
+    if (finalScheduledDateTime.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error: Please select a future time"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     try {
-      // Fetch the latest data to get description for the notification
-      final docSnap = await FirebaseFirestore.instance
-          .collection('booking_requests')
-          .doc(widget.caseId)
-          .get();
-
-      final data = docSnap.data()!;
-      final description = data['description'] ?? 'No description provided';
-      final clientName = data['clientName'] ?? 'Client';
-
       await FirebaseFirestore.instance
           .collection('booking_requests')
           .doc(widget.caseId)
@@ -74,19 +74,18 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
         'status': 'scheduled',
       });
 
-      // ✅ Trigger alarm with detailed parameters
       await NotificationService.scheduleAlarm(
         id: widget.caseId.hashCode,
-        clientName: clientName,
-        caseNumber: widget.caseId.substring(0, 5).toUpperCase(), // Using ID fragment as case number
-        description: description,
+        clientName: _clientName ?? 'Client',
+        caseNumber: widget.caseId.substring(0, 5).toUpperCase(),
+        description: _caseDescription ?? 'Scheduled Hearing',
         scheduledTime: finalScheduledDateTime,
         caseId: widget.caseId,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Scheduled and Alarm Set!")),
+          const SnackBar(content: Text("Case Scheduled Successfully"), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }
@@ -98,124 +97,149 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Schedule Case"),
-        backgroundColor: Colors.blue,
+        title: const Text("Set Hearing Schedule", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: const Color(0xFF0F172A), // Midnight Blue
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          // ✅ Refined Chat Button Logic
           if (_isDataLoaded && _clientId != null)
             IconButton(
-              tooltip: "Chat with Client",
               icon: const Icon(Icons.chat_bubble_outline),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(
-                      otherUserId: _clientId!,
-                      otherUserName: _clientName ?? 'Client',
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(otherUserId: _clientId!, otherUserName: _clientName ?? 'Client'))),
             )
-          else if (!_isDataLoaded)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              ),
-            ),
         ],
       ),
-      body: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24.0),
+      body: _isDataLoaded
+          ? SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon to make the UI look more professional
-            const Icon(Icons.calendar_today, size: 64, color: Colors.blue),
-            const SizedBox(height: 24),
-
-            // Date Display
-            Text(
-              _selectedDate == null
-                  ? "No date selected"
-                  : "Date: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            _buildClientCard(),
+            const SizedBox(height: 30),
+            const Text("Select Date & Time", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+            const SizedBox(height: 16),
+            _buildPickerTile(
+              icon: Icons.calendar_month,
+              label: "Hearing Date",
+              value: _selectedDate == null ? "Not Selected" : "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) setState(() => _selectedDate = date);
+              },
             ),
             const SizedBox(height: 12),
-
-            // Time Display
-            Text(
-              _selectedTime == null
-                  ? "No time selected"
-                  : "Time: ${_selectedTime!.format(context)}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            _buildPickerTile(
+              icon: Icons.access_time_filled,
+              label: "Hearing Time",
+              value: _selectedTime == null ? "Not Selected" : _selectedTime!.format(context),
+              onTap: () async {
+                final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                if (time != null) setState(() => _selectedTime = time);
+              },
             ),
-
             const SizedBox(height: 40),
-
-            // Picker Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) setState(() => _selectedDate = date);
-                    },
-                    icon: const Icon(Icons.date_range),
-                    label: const Text("Pick Date"),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
-                      if (time != null) setState(() => _selectedTime = time);
-                    },
-                    icon: const Icon(Icons.access_time),
-                    label: const Text("Pick Time"),
-                  ),
-                ),
-              ],
-            ),
-
-            const Spacer(),
-
-            // Confirm Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: (_selectedDate != null && _selectedTime != null) ? _saveSchedule : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text(
-                  "Confirm Schedule",
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            _buildSummary(),
+            const SizedBox(height: 40),
+            _buildConfirmButton(),
           ],
         ),
+      )
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildClientCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(radius: 25, backgroundColor: Color(0xFFDBEAFE), child: Icon(Icons.person, color: Colors.blue)),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_clientName ?? "Loading...", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("Case ID: ${widget.caseId.substring(0, 8).toUpperCase()}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPickerTile({required IconData icon, required String label, required String value, required VoidCallback onTap}) {
+    bool isSelected = value != "Not Selected";
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? Colors.blue.shade200 : Colors.transparent),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? Colors.blue : Colors.grey),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text(value, style: TextStyle(fontSize: 16, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+              ],
+            ),
+            const Spacer(),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummary() {
+    if (_selectedDate == null || _selectedTime == null) return const SizedBox();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.blue),
+          const SizedBox(width: 12),
+          const Expanded(child: Text("An automated alarm notification will be set for this time.", style: TextStyle(fontSize: 13, color: Colors.blue))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmButton() {
+    bool canConfirm = _selectedDate != null && _selectedTime != null;
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        onPressed: canConfirm ? _saveSchedule : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0F172A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
+        child: const Text("Confirm & Set Alarm", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }

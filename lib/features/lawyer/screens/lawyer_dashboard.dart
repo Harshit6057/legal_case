@@ -10,7 +10,7 @@ import 'schedule_view_screen.dart';
 import 'package:legal_case_manager/features/lawyer/screens/cases_history_screen.dart';
 import 'package:legal_case_manager/features/lawyer/screens/earnings_screen.dart';
 import 'package:legal_case_manager/features/chat/screens/chat_screen.dart';
-import 'package:legal_case_manager/features/lawyer/screens/case_notes_screen.dart';
+import 'package:legal_case_manager/features/lawyer/screens/case_notes_selection_screen.dart';
 
 
 
@@ -115,13 +115,9 @@ class LawyerDashboardScreen extends StatelessWidget {
                   // Inside your case card widget on the Lawyer Dashboard
                   GestureDetector(
                     onTap: () {
-                      // We navigate to ActiveCasesScreen first so the lawyer can select a specific case
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ActiveCasesScreen()),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Select a case to view or add notes")),
+                        MaterialPageRoute(builder: (_) => const CaseNotesSelectionScreen()),
                       );
                     },
                     child: _actionCard('Case Notes', Icons.note_alt_outlined),
