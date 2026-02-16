@@ -28,6 +28,7 @@ class ActiveCasesScreen extends StatelessWidget {
           return ListView.builder(
             itemCount: cases.length,
             itemBuilder: (context, i) {
+
               final doc = cases[i];
               final data = doc.data() as Map<String, dynamic>;
 

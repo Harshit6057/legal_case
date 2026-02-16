@@ -21,3 +21,5 @@ void main() async {
 
   runApp(const LegalCaseApp());
 }
+
+//AIzaSyApzHnlbeLUdeszhvvyhZ3NYlCOKY53U38

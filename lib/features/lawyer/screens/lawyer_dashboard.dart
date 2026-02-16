@@ -10,21 +10,26 @@ import 'schedule_view_screen.dart';
 import 'package:legal_case_manager/features/lawyer/screens/cases_history_screen.dart';
 import 'package:legal_case_manager/features/lawyer/screens/earnings_screen.dart';
 import 'package:legal_case_manager/features/chat/screens/chat_screen.dart';
+import 'package:legal_case_manager/features/lawyer/screens/case_notes_screen.dart';
 
 
 
 class LawyerDashboardScreen extends StatelessWidget {
   const LawyerDashboardScreen({super.key});
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F6FA),
       bottomNavigationBar: _bottomNav(context),
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
+
           child: ListView(
+
             children: [
               const DashboardHeader(),
               const SizedBox(height: 20),
@@ -104,6 +109,22 @@ class LawyerDashboardScreen extends StatelessWidget {
                         MaterialPageRoute(builder: (_) => const EarningsScreen())
                     ),
                     child: _actionCard('Earnings', Icons.account_balance_wallet),
+                  ),
+
+
+                  // Inside your case card widget on the Lawyer Dashboard
+                  GestureDetector(
+                    onTap: () {
+                      // We navigate to ActiveCasesScreen first so the lawyer can select a specific case
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ActiveCasesScreen()),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Select a case to view or add notes")),
+                      );
+                    },
+                    child: _actionCard('Case Notes', Icons.note_alt_outlined),
                   ),
 
 
@@ -242,6 +263,7 @@ class LawyerDashboardScreen extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           itemCount: uniqueChats.length,
           itemBuilder: (context, index) {
+
             final data = uniqueChats[index].data() as Map<String, dynamic>;
             final String clientName = data['clientName'] ?? 'Client';
 
