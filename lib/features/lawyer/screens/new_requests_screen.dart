@@ -119,9 +119,9 @@ class NewRequestsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        data['description'] ?? "No description provided",
+                        data['caseDetails'] ?? "No details provided", // ✅ Updated from 'description'
                         style: const TextStyle(fontSize: 14, height: 1.4),
-                        maxLines: 4, // Prevents overly long cards
+                        maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                       ),
 

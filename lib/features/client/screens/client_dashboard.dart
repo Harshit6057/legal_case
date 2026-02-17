@@ -9,6 +9,8 @@ import '../../chat/screens/chat_screen.dart';
 import 'package:legal_case_manager/common/widgets/movable_ai_button.dart';
 import 'package:legal_case_manager/features/client/screens/client_case_notes_view.dart';
 import 'package:legal_case_manager/features/client/screens/all_lawyer_categories_screen.dart';
+import 'package:legal_case_manager/features/client/screens/explore_search_screen.dart';
+
 
 
 class ClientDashboardScreen extends StatelessWidget {
@@ -329,22 +331,51 @@ class ClientDashboardScreen extends StatelessWidget {
       children: categories.map((item) {
         return Expanded(
           child: GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LawyerListScreen(specialization: item['key']!, title: '${item['title']} Lawyers'))),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-              ),
-              child: Column(
-                children: [
-                  Image.asset(item['image']!, height: 40, errorBuilder: (c, e, s) => Icon(Icons.person, color: accentBlue)),
-                  const SizedBox(height: 8),
-                  Text(item['title']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => LawyerListScreen(
+                        specialization: item['key']!,
+                        title: '${item['title']} Lawyers'
+                    )
+                )
+            ),
+            child: Column(
+              children: [
+                // ✅ Large, clean container for the icon
+                Container(
+                  height: 85,
+                  width: 85,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Image.asset(
+                    item['image']!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (c, e, s) => Icon(Icons.person, color: accentBlue, size: 30),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // ✅ Text is now placed below the container for better visibility
+                Text(
+                    item['title']!,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: primaryDark
+                    )
+                ),
+              ],
             ),
           ),
         );
@@ -372,16 +403,27 @@ class ClientDashboardScreen extends StatelessWidget {
 
   Widget _bottomNav(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)]),
+      decoration: BoxDecoration(
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)]
+      ),
       child: BottomNavigationBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        currentIndex: 0,
+        currentIndex: 0, // This should normally be a state variable
         selectedItemColor: accentBlue,
         unselectedItemColor: Colors.grey.shade400,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         onTap: (index) {
-          if (index == 2) Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+          if (index == 1) { // ✅ Index 1 is the 'Explore' tab
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ExploreSearchScreen()),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),

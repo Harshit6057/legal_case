@@ -116,10 +116,24 @@ class NotificationsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 6),
+            // ✅ Display the specific Case Title instead of just the hearing type
             Text(
-              "New request for $hearingType",
+              data['caseTitle'] ?? "New Legal Request",
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              "Priority: $hearingType",
               style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
             ),
+            // ✅ Optionally show a tiny snippet of details
+            if (data['caseDetails'] != null)
+              Text(
+                data['caseDetails'],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             if (date != null) ...[
               const SizedBox(height: 10),
               Row(

@@ -7,7 +7,8 @@ import 'package:phonepe_payment_sdk/phonepe_payment_sdk.dart'; // New Import
 import 'dart:convert';
 import 'package:crypto/crypto.dart'; // For checksum
 import '../../chat/screens/chat_screen.dart';
-import 'package:legal_case_manager/features/lawyer/screens/earnings_screen.dart';
+import 'package:legal_case_manager/features/client/screens/lawyer_booking_page.dart';
+
 
 
 class LawyerProfileViewScreen extends StatefulWidget {
@@ -231,12 +232,13 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
         final String name = data['name'] ?? 'Lawyer';
         final String specialization = data['specialization'] ?? 'General';
         final String about = data['about'] ?? 'No description available';
-        final int experience = data['experience'] ?? 0;
-        final int cases = data['cases'] ?? 0;
-        final double rating = (data['rating'] ?? 0.0).toDouble();
+        final int experience = (data['experience'] as num?)?.toInt() ?? 0;
+        final int cases = (data['cases'] as num?)?.toInt() ?? 0;
+        final double rating = (data['rating'] as num?)?.toDouble() ?? 0.0;
 
-        final double? lat = data['officeLat']?.toDouble();
-        final double? lng = data['officeLng']?.toDouble();
+        // ✅ Safe conversion for location coordinates
+        final double? lat = (data['officeLat'] as num?)?.toDouble();
+        final double? lng = (data['officeLng'] as num?)?.toDouble();
         final String? officeAddress = data['officeAddress'];
 
         return Scaffold(
@@ -332,20 +334,31 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                     onTap: () => _openGoogleMaps(lat, lng),
                     child: Container(
                       height: 180,
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Colors.grey[200]),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.grey[200],
+                      ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: Stack(
                           children: [
-                            Image.network(_getOSMMapUrl(lat, lng), width: double.infinity, height: double.infinity, fit: BoxFit.cover,
-                              errorBuilder: (ctx, err, stack) => const Center(child: Icon(Icons.map)),
+                            // Static Map Preview using OpenStreetMap
+                            Image.network(
+                              _getOSMMapUrl(lat, lng),
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, err, stack) => const Center(child: Icon(Icons.map, size: 40)),
                             ),
+                            // Address overlay with navigation icon
                             Align(
                               alignment: Alignment.bottomCenter,
                               child: Container(
                                 margin: const EdgeInsets.all(10),
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
                                   boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
                                 ),
                                 child: Row(
@@ -353,7 +366,11 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                                     const Icon(Icons.location_on, color: Colors.red, size: 20),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                      child: Text(officeAddress ?? 'View directions', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                                      child: Text(
+                                          officeAddress ?? 'View directions',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                          overflow: TextOverflow.ellipsis
+                                      ),
                                     ),
                                     const Icon(Icons.directions, color: Colors.blue, size: 20),
                                   ],
@@ -364,6 +381,13 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                         ),
                       ),
                     ),
+                  ),
+                ] else ...[
+                  // Optional: Placeholder if no location is found
+                  _sectionTitle('Office Location'),
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text("Location details not provided.", style: TextStyle(color: Colors.grey)),
                   ),
                 ],
 
@@ -380,9 +404,22 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
-                        // ✅ Only one button needed now
-                        onPressed: () => _showBookingDialog(context, data),
-                        child: const Text("Book Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        // ✅ ADDED: The required child parameter
+                        child: const Text(
+                            "Book Now",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LawyerBookingPage(
+                                lawyerId: widget.lawyerId,
+                                lawyerName: name, // From your StreamBuilder data
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -454,24 +491,66 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
 
   Future<void> _submitRating(double rating) async {
     final docRef = FirebaseFirestore.instance.collection('users').doc(widget.lawyerId);
+
     try {
+      // Show loading snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Submitting rating...")),
+      );
+
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         DocumentSnapshot snapshot = await transaction.get(docRef);
-        if (!snapshot.exists) return;
+
+        if (!snapshot.exists) {
+          throw Exception("Lawyer document does not exist!");
+        }
+
         Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-        double currentRating = (data['rating'] ?? 0.0).toDouble();
+
+        // ✅ FIX 1: Robust Type Casting
+        // num handles both int and double safely from Firestore
+        num currentRating = data['rating'] ?? 0.0;
         int totalReviews = data['totalReviews'] ?? 0;
-        double newRating = ((currentRating * totalReviews) + rating) / (totalReviews + 1);
+
+        // ✅ FIX 2: Mathematical Calculation
+        // If it's the first review, the rating is simply the selected value
+        double newRating;
+        if (totalReviews == 0) {
+          newRating = rating;
+        } else {
+          // Calculation: ((Existing Avg * Existing Count) + New Rating) / New Total Count
+          newRating = ((currentRating * totalReviews) + rating) / (totalReviews + 1);
+        }
+
+        // ✅ FIX 3: Precision Handling
+        // Limit to 1 decimal place to avoid long floats (e.g., 4.33333333)
+        newRating = double.parse(newRating.toStringAsFixed(1));
+
         transaction.update(docRef, {
           'rating': newRating,
           'totalReviews': totalReviews + 1,
         });
       });
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Rating submitted!"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Rating submitted successfully!"),
+              backgroundColor: Colors.green
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Rating Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text("Failed to submit rating: $e"),
+              backgroundColor: Colors.red
+          ),
+        );
+      }
     }
   }
 
@@ -666,3 +745,4 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
   }
 
 }
+
