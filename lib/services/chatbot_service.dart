@@ -4,7 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 
 class ChatbotService {
   // ✅ Replace with your actual Gemini API Key from Google AI Studio
-  static const String _apiKey = 'AIzaSyApzHnlbeLUdeszhvvyhZ3NYlCOKY53U38';
+  static const String _apiKey = 'AIzaSyC4kiXuryJE7wr6BORX3-w-LL0S0LWfWYE';
+  //AIzaSyApzHnlbeLUdeszhvvyhZ3NYlCOKY53U38
 
   static final List<String> _legalKeywords = [
     'law', 'constitution', 'finance', 'advocacy', 'lawyer', 'court', 'judge',
