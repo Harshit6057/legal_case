@@ -9,7 +9,8 @@ import 'package:legal_case_manager/features/lawyer/screens/new_requests_screen.d
 import 'package:legal_case_manager/features/lawyer/screens/lawyer_conversation_screen.dart';
 import 'package:legal_case_manager/features/client/screens/client_conversations_screen.dart';
 import 'package:legal_case_manager/features/client/screens/client_request_status_screen.dart';
-
+import 'package:legal_case_manager/features/client/screens/explore_search_screen.dart';
+import 'package:legal_case_manager/features/lawyer/screens/lawyer_profile_view_screen.dart';
 
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({super.key});
@@ -100,18 +101,84 @@ class DashboardHeader extends StatelessWidget {
         const SizedBox(width: 12),
 
         /// SEARCH
+        // Inside your DashboardHeader widget
+        // dashboard_widgets.dart
+
         Expanded(
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide.none,
-              ),
-            ),
+          child: SearchAnchor(
+            builder: (BuildContext context, SearchController controller) {
+              return SearchBar(
+                controller: controller,
+                hintText: 'Search lawyers, experience...',
+                padding: const WidgetStatePropertyAll<EdgeInsets>(
+                    EdgeInsets.symmetric(horizontal: 16.0)),
+                onTap: () {
+                  controller.openView();
+                },
+                onSubmitted: (query) {
+                  if (query.trim().isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ExploreSearchScreen(initialQuery: query),
+                      ),
+                    );
+                  }
+                },
+                leading: const Icon(Icons.search),
+                elevation: WidgetStateProperty.all(0),
+                backgroundColor: WidgetStateProperty.all(Colors.white),
+              );
+            },
+            suggestionsBuilder: (BuildContext context, SearchController controller) async {
+              final String input = controller.value.text.toLowerCase();
+              if (input.isEmpty) return [];
+
+              try {
+                // 1. Fetch only lawyers to reduce errors and save costs
+                final snapshot = await FirebaseFirestore.instance
+                    .collection('users')
+                    .where('role', isEqualTo: 'lawyer')
+                    .get();
+
+                // 2. Use safe data extraction
+                final matches = snapshot.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+
+                  // Safe check: if field is missing, use empty string
+                  final name = (data['name'] ?? "").toString().toLowerCase();
+                  final spec = (data['specialization'] ?? "").toString().toLowerCase();
+                  final exp = (data['experience'] ?? "").toString().toLowerCase();
+
+                  return name.contains(input) ||
+                      spec.contains(input) ||
+                      exp.contains(input);
+                }).toList();
+
+                return matches.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return ListTile(
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.person),
+                    ),
+                    title: Text(data['name'] ?? "Unknown Lawyer"),
+                    subtitle: Text("${data['specialization'] ?? 'Legal Expert'} • ${data['experience'] ?? '0'} yrs exp"),
+                    onTap: () {
+                      controller.closeView(data['name']);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LawyerProfileViewScreen(lawyerId: doc.id),
+                        ),
+                      );
+                    },
+                  );
+                }).toList();
+              } catch (e) {
+                debugPrint("Search Error: $e");
+                return [const ListTile(title: Text("Error fetching results"))];
+              }
+            },
           ),
         ),
 

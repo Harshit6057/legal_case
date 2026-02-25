@@ -449,7 +449,7 @@ class ClientDashboardScreen extends StatelessWidget {
           if (index == 1) { // ✅ Index 1 is the 'Explore' tab
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ExploreSearchScreen()),
+              MaterialPageRoute(builder: (_) => const ExploreSearchScreen(initialQuery: '',)),
             );
           } else if (index == 2) {
             Navigator.push(

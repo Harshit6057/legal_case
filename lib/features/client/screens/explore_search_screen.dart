@@ -4,26 +4,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:legal_case_manager/features/lawyer/screens/lawyer_profile_view_screen.dart';
 
 class ExploreSearchScreen extends StatefulWidget {
-  const ExploreSearchScreen({super.key});
+  final String initialQuery; // ✅ Accept the query
+  const ExploreSearchScreen({super.key, required this.initialQuery});
 
   @override
   State<ExploreSearchScreen> createState() => _ExploreSearchScreenState();
 }
 
 class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
+  late TextEditingController _searchController;
   String _searchQuery = "";
-  String _selectedFilter = "Name"; // Options: Name, Experience, Rating, Category
+  String _selectedFilter = "Name";
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Initialize query from the dashboard
+    _searchQuery = widget.initialQuery.toLowerCase();
+    _searchController = TextEditingController(text: widget.initialQuery);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Explore Lawyers", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Explore lawyers", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF0F172A),
         foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: SafeArea(
         child: Column(
@@ -47,23 +55,10 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: "Search by $_selectedFilter...",
-          hintStyle: const TextStyle(color: Colors.white60),
           prefixIcon: const Icon(Icons.search, color: Colors.white60),
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.1),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-            icon: const Icon(Icons.clear, color: Colors.white60),
-            onPressed: () {
-              _searchController.clear();
-              setState(() => _searchQuery = "");
-            },
-          )
-              : null,
+          fillColor: Colors.white.withOpacity(0.1),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         ),
       ),
     );
@@ -110,21 +105,25 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-        // Local filtering logic
         final lawyers = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final String name = (data['name'] ?? "").toString().toLowerCase();
           final String category = (data['specialization'] ?? "").toString().toLowerCase();
-          final String exp = (data['experience'] ?? "").toString().toLowerCase();
-          final String rating = (data['rating'] ?? "").toString().toLowerCase();
+          final String exp = (data['experience'] ?? "0").toString();
+          final String rating = (data['rating'] ?? "0").toString();
 
           if (_searchQuery.isEmpty) return true;
 
+          // Multi-parameter searching logic
           switch (_selectedFilter) {
             case "Name": return name.contains(_searchQuery);
             case "Category": return category.contains(_searchQuery);
-            case "Experience": return exp.contains(_searchQuery);
-            case "Rating": return rating.contains(_searchQuery);
+            case "Experience":
+            // Allows searching "5" to find 5 years experience
+              return exp == _searchQuery || exp.contains(_searchQuery);
+            case "Rating":
+            // Allows searching "4" to find 4.5 or 4.0 ratings
+              return rating.startsWith(_searchQuery);
             default: return name.contains(_searchQuery);
           }
         }).toList();
@@ -136,7 +135,14 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
           itemCount: lawyers.length,
           itemBuilder: (context, index) {
             final data = lawyers[index].data() as Map<String, dynamic>;
-            return _buildLawyerCard(data);
+            final String id = lawyers[index].id;
+            return GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => LawyerProfileViewScreen(lawyerId: id)),
+              ),
+              child: _buildLawyerCard(data),
+            );
           },
         );
       },
