@@ -8,25 +8,24 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 1. Initialize Firebase first
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // 2. Activate App Check ONCE with both providers
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug, // Use debug for emulator/testing
+    // For Android (Debug/Emulator)
+    androidProvider: AndroidProvider.debug,
+    // For Web (Production) - Paste your actual Site Key here
+    webProvider: ReCaptchaV3Provider('6LcXyIcsAAAAAATAT2djOzEqSSrog63gu44xXsGw'),
   );
 
-  // ✅ Pass the navigatorKey defined in app.dart to the Notification Service
+  // 3. Initialize other services
   await NotificationService.init(navigatorKey);
 
+  // 4. Run the App
   runApp(const LegalCaseApp());
-
-  // lib/main.dart updates
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug,
-    // ✅ Add this for Web/Vercel support
-    webProvider: ReCaptchaV3Provider('YOUR_RECAPTCHA_V3_SITE_KEY'),
-  );
 }
 
 //AIzaSyApzHnlbeLUdeszhvvyhZ3NYlCOKY53U38

@@ -1,32 +1,68 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class GoogleAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // ✅ FIX: Use a static lazy-initialized variable that is NULL on Web.
+  // This prevents the GoogleSignIn package from trying to initialize 
+  // on the web platform, which causes the "Null check operator" error 
+  // if the Client ID is not found in index.html.
+  static final GoogleSignIn? _googleSignIn = kIsWeb ? null : GoogleSignIn();
 
   Future<User?> signInWithGoogle() async {
-    // Force the account picker to show every time
-    await _googleSignIn.signOut();
-    
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    try {
+      if (kIsWeb) {
+        // ✅ For Web: Use Firebase's native popup.
+        // This is the recommended way for Firebase Hosting.
+        // It DOES NOT require the google_sign_in package configuration.
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        
+        // Force account selection
+        googleProvider.setCustomParameters({
+          'prompt': 'select_account'
+        });
 
-    if (googleUser == null) return null;
+        final UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
+        return userCredential.user;
+      } else {
+        // ✅ For Mobile: Use the package normally.
+        if (_googleSignIn == null) return null; // Should never happen on mobile
 
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        await _googleSignIn!.signOut();
+        
+        final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
+        if (googleUser == null) return null;
 
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-    final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
 
-    return userCredential.user;
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        return userCredential.user;
+      }
+    } catch (e) {
+      print("Google Sign-In Error: $e");
+      // If we still see a null check error, provide a more descriptive message.
+      if (e.toString().contains('Null check operator')) {
+        throw 'Initialization error: Ensure Google Auth is correctly enabled in your Firebase Console.';
+      }
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+    try {
+      await _auth.signOut();
+      if (!kIsWeb) {
+        await _googleSignIn?.signOut();
+      }
+    } catch (e) {
+      print("Sign Out Error: $e");
+    }
   }
 }
