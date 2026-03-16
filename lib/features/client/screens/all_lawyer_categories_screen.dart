@@ -11,13 +11,13 @@ class AllLawyerCategoriesScreen extends StatelessWidget {
     final Color primaryDark = const Color(0xFF0F172A);
 
     final categories = [
-      {'title': 'Criminal', 'image': 'assets/images/criminal.png', 'key': 'criminal'},
-      {'title': 'Civil', 'image': 'assets/images/civil.png', 'key': 'civil'},
-      {'title': 'Corporate', 'image': 'assets/images/corporate.png', 'key': 'corporate'},
-      {'title': 'Public Interest', 'image': 'assets/images/public.png', 'key': 'public'},
-      {'title': 'Immigration', 'image': 'assets/images/immigration.png', 'key': 'immigration'},
-      {'title': 'Property', 'image': 'assets/images/property.png', 'key': 'property'},
-      {'title': 'Family', 'image': 'assets/images/family.png', 'key': 'family'},
+      {'title': 'Criminal', 'image': 'assets/images/criminal.png', 'key': 'Criminal'},
+      {'title': 'Civil', 'image': 'assets/images/civil.png', 'key': 'Civil'},
+      {'title': 'Corporate', 'image': 'assets/images/corporate.png', 'key': 'Corporate'},
+      {'title': 'Public Interest', 'image': 'assets/images/public.png', 'key': 'Public Interest'},
+      {'title': 'Immigration', 'image': 'assets/images/immigration.png', 'key': 'Immigration'},
+      {'title': 'Property', 'image': 'assets/images/property.png', 'key': 'Property'},
+      {'title': 'Family', 'image': 'assets/images/family.png', 'key': 'Family'},
     ];
 
     return Scaffold(

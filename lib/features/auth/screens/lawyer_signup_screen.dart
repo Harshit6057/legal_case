@@ -197,7 +197,7 @@ class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
                 _dropdownField(
                   label: 'Specialization',
                   value: _selectedSpecialization,
-                  items: ['Criminal', 'Civil', 'Corporate', 'Public', 'Immigration', 'Property'],
+                  items: ['Criminal', 'Civil', 'Corporate', 'Public Interest', 'Immigration', 'Property', 'Family'],
                   onChanged: (v) => setState(() => _selectedSpecialization = v),
                 ),
                 const SizedBox(height: 16),
