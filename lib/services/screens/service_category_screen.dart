@@ -4,6 +4,7 @@ import '../../../common/widgets/dashboard_widgets.dart';
 import 'package:legal_case_manager/features/profile/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:legal_case_manager/features/documentation/screens/documentation_screen.dart';
+import 'package:legal_case_manager/features/lawyer/screens/lawyer_profile_view_screen.dart';
 
 class ServiceCategoryScreen extends StatelessWidget {
   final String title;
@@ -43,7 +44,7 @@ class ServiceCategoryScreen extends StatelessWidget {
             _sectionTitle('Recommended Lawyers'),
             const SizedBox(height: 16),
 
-            _recommendedLawyers(),
+            _recommendedLawyers(context),
             const SizedBox(height: 20),
           ],
         ),
@@ -127,7 +128,7 @@ class ServiceCategoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _recommendedLawyers() {
+  Widget _recommendedLawyers(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -156,71 +157,83 @@ class ServiceCategoryScreen extends StatelessWidget {
             childAspectRatio: 0.75,
           ),
           itemBuilder: (_, i) {
-            final data = lawyers[i].data() as Map<String, dynamic>;
+            final doc = lawyers[i];
+            final data = doc.data() as Map<String, dynamic>;
             final name = data['name'] ?? 'Lawyer';
             final avatarUrl = data['avatarUrl'];
             final int experience = (data['experience'] is int) ? data['experience'] : 0;
 
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                      child: avatarUrl != null && avatarUrl != ''
-                          ? Image.network(avatarUrl, fit: BoxFit.cover, width: double.infinity)
-                          : Container(
-                        color: accentBlue.withValues(alpha: 0.1),
-                        alignment: Alignment.center,
-                        child: Text(
-                          name[0].toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 40,
-                            color: accentBlue,
-                            fontWeight: FontWeight.bold,
+            return InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LawyerProfileViewScreen(lawyerId: doc.id),
+                  ),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        child: avatarUrl != null && avatarUrl != ''
+                            ? Image.network(avatarUrl, fit: BoxFit.cover, width: double.infinity)
+                            : Container(
+                          color: accentBlue.withValues(alpha: 0.1),
+                          alignment: Alignment.center,
+                          child: Text(
+                            name[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 40,
+                              color: accentBlue,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        Text(
-                          name,
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryDark),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.work_history_outlined, size: 12, color: Colors.grey.shade400),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$experience+ Years',
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ],
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryDark),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.work_history_outlined, size: 12, color: Colors.grey.shade400),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$experience+ Years',
+                                style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },

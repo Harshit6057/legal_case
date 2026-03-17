@@ -16,6 +16,14 @@ class AuthService {
     String? courtType,
     String? state,
     String? district,
+    // ✅ NEW OCR FIELDS
+    String? fatherName,
+    String? dob,
+    String? address,
+    String? validity,
+    String? enrolmentNo,
+    String? signingAuthority,
+    String? panCardNo,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -43,6 +51,14 @@ class AuthService {
         'state': state ?? '',
         'district': district ?? '',
         'experience': 0,
+        // ✅ ADD NEW FIELDS
+        'fatherName': fatherName ?? '',
+        'dob': dob ?? '',
+        'address': address ?? '',
+        'validity': validity ?? '',
+        'enrolmentNo': enrolmentNo ?? barCouncilId ?? '',
+        'signingAuthority': signingAuthority ?? '',
+        'panCardNo': panCardNo ?? '',
       });
     }
 
