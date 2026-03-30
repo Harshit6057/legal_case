@@ -66,7 +66,7 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
 
   Widget _buildFilterChips() {
     final filters = ["Name", "Experience", "Rating", "Category"];
-    return Container(
+    return SizedBox(
       height: 60,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,

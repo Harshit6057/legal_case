@@ -1,7 +1,5 @@
   import 'package:flutter/material.dart';
   import 'package:legal_case_manager/features/auth/screens/client_login_screen.dart';
-  import 'login_screen.dart';
-  import 'client_login_screen.dart';
   import 'client_signup_screen.dart';
 
   class ClientAuthScreen extends StatelessWidget {

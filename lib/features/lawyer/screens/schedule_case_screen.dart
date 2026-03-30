@@ -15,6 +15,7 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _clientName;
+  String? _lawyerName;
   String? _clientId;
   String? _caseDescription;
   bool _isDataLoaded = false;
@@ -22,10 +23,10 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
   @override
   void initState() {
     super.initState();
-    _loadClientInfo();
+    _loadCaseInfo();
   }
 
-  Future<void> _loadClientInfo() async {
+  Future<void> _loadCaseInfo() async {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('booking_requests')
@@ -36,13 +37,14 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
         final data = doc.data()!;
         setState(() {
           _clientName = data['clientName'];
+          _lawyerName = data['lawyerName'];
           _clientId = data['clientId'];
           _caseDescription = data['description'];
           _isDataLoaded = true;
         });
       }
     } catch (e) {
-      debugPrint("Error loading client info: $e");
+      debugPrint("Error loading case info: $e");
     }
   }
 
@@ -57,7 +59,6 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
       _selectedTime!.minute,
     );
 
-    // ✅ Safety Check: Prevent scheduling in the past
     if (finalScheduledDateTime.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error: Please select a future time"), backgroundColor: Colors.red),
@@ -66,6 +67,7 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
     }
 
     try {
+      // 1. Update Firestore status
       await FirebaseFirestore.instance
           .collection('booking_requests')
           .doc(widget.caseId)
@@ -74,18 +76,31 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
         'status': 'scheduled',
       });
 
-      await NotificationService.scheduleAlarm(
-        id: widget.caseId.hashCode,
+      // 2. Schedule Local Alarm for LAWYER (using client name)
+      await NotificationService.scheduleCaseNotification(
+        notificationId: widget.caseId.hashCode,
         clientName: _clientName ?? 'Client',
-        caseNumber: widget.caseId.substring(0, 5).toUpperCase(),
-        description: _caseDescription ?? 'Scheduled Hearing',
+        title: 'Upcoming Case with ${_clientName ?? 'Client'}',
+        body: 'Case No: ${widget.caseId.substring(0, 5).toUpperCase()}',
+        description: 'Hearing scheduled for today: ${_caseDescription ?? ""}',
         scheduledTime: finalScheduledDateTime,
         caseId: widget.caseId,
       );
 
+      // 3. Inform the client via a Firestore trigger or FCM (Cloud Messaging)
+      // Since we are using local notifications, we can't directly schedule on the client's phone from the lawyer's phone.
+      // However, we update the case status in Firestore so that when the client opens their app, 
+      // the dashboard shows the updated 'scheduled' time.
+      
+      // ✅ IMPROVEMENT: We add a 'lastUpdated' field to help the client app detect the change.
+      await FirebaseFirestore.instance
+          .collection('booking_requests')
+          .doc(widget.caseId)
+          .update({'lastUpdated': FieldValue.serverTimestamp()});
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Case Scheduled Successfully"), backgroundColor: Colors.green),
+          const SnackBar(content: Text("Case Scheduled. Status updated for Client."), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }
@@ -100,7 +115,7 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text("Set Hearing Schedule", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: const Color(0xFF0F172A), // Midnight Blue
+        backgroundColor: const Color(0xFF0F172A),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -217,11 +232,11 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.info_outline, color: Colors.blue),
-          const SizedBox(width: 12),
-          const Expanded(child: Text("An automated alarm notification will be set for this time.", style: TextStyle(fontSize: 13, color: Colors.blue))),
+          Icon(Icons.info_outline, color: Colors.blue),
+          SizedBox(width: 12),
+          Expanded(child: Text("The status will be updated for both you and your client.", style: TextStyle(fontSize: 13, color: Colors.blue))),
         ],
       ),
     );
@@ -239,7 +254,7 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 0,
         ),
-        child: const Text("Confirm & Set Alarm", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        child: const Text("Schedule Hearing", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }

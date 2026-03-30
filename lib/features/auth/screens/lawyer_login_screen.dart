@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:legal_case_manager/features/auth/screens/entry_choice_screen.dart';
-import 'package:legal_case_manager/features/lawyer/screens/lawyer_dashboard.dart';
 import 'package:legal_case_manager/services/auth_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:legal_case_manager/services/google_auth_service.dart';
-import 'package:legal_case_manager/features/auth/screens/lawyer_verification_screen.dart';
 import 'package:legal_case_manager/features/auth/screens/lawyer_home_wrapper.dart';
 import 'package:legal_case_manager/features/auth/screens/lawyer_signup_screen.dart';
 

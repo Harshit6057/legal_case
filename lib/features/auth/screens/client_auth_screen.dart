@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'client_auth_screen.dart';
 //lawyer login and signup
 
 

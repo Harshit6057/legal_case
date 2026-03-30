@@ -4,8 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:phonepe_payment_sdk/phonepe_payment_sdk.dart'; // New Import
-import 'dart:convert';
-import 'package:crypto/crypto.dart'; // For checksum
+// For checksum
 import '../../chat/screens/chat_screen.dart';
 import 'package:legal_case_manager/features/client/screens/lawyer_booking_page.dart';
 

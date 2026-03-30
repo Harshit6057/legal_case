@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
 import 'client_auth_choice_screen.dart';
-import 'lawyer_login_screen.dart';
 import 'lawyer_auth_choice_screen.dart';
 // Choice Screen Client or Lawyer
 

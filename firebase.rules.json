@@ -1,0 +1,1 @@
+Added Firebase rules to allow read access to verified users and write access to admins.

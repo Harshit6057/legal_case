@@ -84,7 +84,7 @@ class _LawyerPortfolioEditorState extends State<LawyerPortfolioEditor> {
               ),
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
-                value: _specialization,
+                initialValue: _specialization,
                 decoration: const InputDecoration(labelText: "Main Specialization", border: OutlineInputBorder()),
                 items: ['criminal', 'civil', 'corporate', 'Property', 'immigration', 'Public' ]
                     .map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase())))

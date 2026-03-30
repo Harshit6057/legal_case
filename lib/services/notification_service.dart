@@ -1,13 +1,12 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
-  static GlobalKey<NavigatorState>? navigatorKey; // For navigation from background
+  static GlobalKey<NavigatorState>? navigatorKey;
 
   static Future<void> init(GlobalKey<NavigatorState> key) async {
     navigatorKey = key;
@@ -22,41 +21,40 @@ class NotificationService {
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         if (response.payload != null) {
-          // ✅ Navigate to the details page when notification is clicked
           navigatorKey?.currentState?.pushNamed('/caseDetails', arguments: response.payload);
         }
       },
     );
   }
 
-  // Inside lib/services/notification_service.dart
-
-  static Future<void> scheduleAlarm({
-    required int id,
-    required String clientName,
-    required String caseNumber,
+  /// ✅ New: General function to schedule alarms for both Client and Lawyer
+  static Future<void> scheduleCaseNotification({
+    required String caseId,
+    required String title,
+    required String body,
     required String description,
     required DateTime scheduledTime,
-    required String caseId,
+    required int notificationId, required String clientName,
   }) async {
+    // Only schedule if the time is in the future
+    if (scheduledTime.isBefore(DateTime.now())) return;
+
     await _notificationsPlugin.zonedSchedule(
-      id,
-      'Upcoming Case: $clientName', // Title in collapsed view
-      'Case #$caseNumber', // Body in collapsed view
+      notificationId,
+      title,
+      body,
       tz.TZDateTime.from(scheduledTime, tz.local),
       NotificationDetails(
         android: AndroidNotificationDetails(
           'case_alarm_channel',
           'Case Alarms',
-          channelDescription: 'Detailed case reminders',
+          channelDescription: 'Reminders for upcoming legal hearings',
           importance: Importance.max,
           priority: Priority.high,
-          fullScreenIntent: true,
-          // ✅ UPDATED: Gmail-style expandable content
           styleInformation: BigTextStyleInformation(
-            description, // The full description shown when expanded
-            contentTitle: '<b>$clientName</b>', // Bold title when expanded
-            summaryText: 'Case No: $caseNumber', // Small text above the description
+            description,
+            contentTitle: '<b>$title</b>',
+            summaryText: body,
             htmlFormatContent: true,
             htmlFormatContentTitle: true,
           ),

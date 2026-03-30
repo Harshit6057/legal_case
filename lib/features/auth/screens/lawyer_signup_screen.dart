@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:legal_case_manager/features/auth/screens/lawyer_login_screen.dart';
 import 'package:legal_case_manager/services/auth_service.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LawyerSignupScreen extends StatefulWidget {
   const LawyerSignupScreen({super.key});
@@ -34,7 +34,7 @@ class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
   XFile? _barBackImage;
 
   // ✅ Store extracted data for "matching" verification
-  Map<String, String> _extractedData = {};
+  final Map<String, String> _extractedData = {};
 
   String? _selectedSpecialization;
   String? _selectedCourtType;
@@ -120,8 +120,8 @@ class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
 
     try {
       final model = GenerativeModel(
-        model: 'gemini-1.5-flash', // ✅ Fixed: Use gemini-1.5-flash (not 2.5)
-        apiKey: 'AIzaSyC4kiXuryJE7wr6BORX3-w-LL0S0LWfWYE',
+        model: 'gemini-2.5-flash', // ✅ Fixed: Use gemini-1.5-flash (not 2.5)
+        apiKey: 'AIzaSyDvvT7-BYY6lu4k8MLULnGx9PEISfOzTWA',
       );
 
       final bytes = await imageFile.readAsBytes();
@@ -183,7 +183,9 @@ class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
         }
       }
     } catch (e) {
-      print("OCR Error: $e");
+      if (kDebugMode) {
+        debugPrint("OCR Error: $e");
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Scanning helper failed. You can still fill the details manually below.'),
@@ -402,7 +404,7 @@ class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
 
   Widget _dropdownField({required String label, required String? value, required List<String> items, required Function(String?) onChanged}) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
       onChanged: onChanged,
       decoration: InputDecoration(filled: true, fillColor: Colors.white, labelText: label, border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),

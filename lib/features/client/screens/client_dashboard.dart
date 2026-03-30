@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:legal_case_manager/common/widgets/dashboard_widgets.dart';
 import 'package:legal_case_manager/features/profile/screens/profile_screen.dart';
 import 'package:legal_case_manager/features/lawyer/screens/lawyer_list_screen.dart';
 import 'package:legal_case_manager/services/screens/service_category_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../services/notification_service.dart';
 import '../../chat/screens/chat_screen.dart';
 import 'package:legal_case_manager/common/widgets/movable_ai_button.dart';
 import 'package:legal_case_manager/features/client/screens/client_case_notes_view.dart';
@@ -12,16 +15,34 @@ import 'package:legal_case_manager/features/client/screens/all_lawyer_categories
 import 'package:legal_case_manager/features/client/screens/explore_search_screen.dart';
 import 'package:legal_case_manager/features/client/screens/affidavit_info_screen.dart';
 import 'package:legal_case_manager/features/client/screens/documentataion_screen.dart';
+import 'package:legal_case_manager/features/client/screens/courts_display_board_screen.dart';
 import 'package:legal_case_manager/features/chat/screens/legal_chatbot_screen.dart';
+import 'package:legal_case_manager/features/client/models/court_live_update.dart';
+import 'package:legal_case_manager/features/client/services/court_live_updates_service.dart';
 
 
 
-class ClientDashboardScreen extends StatelessWidget {
+class ClientDashboardScreen extends StatefulWidget {
   const ClientDashboardScreen({super.key});
+
+  @override
+  State<ClientDashboardScreen> createState() => _ClientDashboardScreenState();
+}
+
+class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
+  final CourtLiveUpdatesService _courtUpdatesService = CourtLiveUpdatesService();
+  bool _isSyncingCourtData = false;
+  bool _showAllCourtsDisplayNumbers = false;
 
   final Color primaryDark = const Color(0xFF0F172A);
   final Color accentBlue = const Color(0xFF2563EB);
   final Color backgroundSlate = const Color(0xFFF8FAFC);
+
+  @override
+  void initState() {
+    super.initState();
+    _triggerCourtSync();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +67,10 @@ class ClientDashboardScreen extends StatelessWidget {
               _sectionTitle(context, 'Find Specialists', 'view_all_specialists'),
               _lawyerCategoryGrid(context),
               const SizedBox(height: 30),
+              _allCourtsDisplayToggleSection(context),
+              const SizedBox(height: 20),
+              _courtLiveBoardSection(context),
+              const SizedBox(height: 30),
               _sectionTitle(context, 'Your Conversations', null),
               _conversationsSection(),
               const SizedBox(height: 30),
@@ -66,6 +91,10 @@ class ClientDashboardScreen extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+        // ✅ ADDED: Trigger notification sync whenever data is received
+        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          _syncNotifications(snapshot.data!.docs);
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _emptyConversations();
@@ -416,6 +445,302 @@ class ClientDashboardScreen extends StatelessWidget {
     );
   }
 
+  Widget _courtLiveBoardSection(BuildContext context) {
+    final clientId = FirebaseAuth.instance.currentUser?.uid;
+    if (clientId == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Court Live Board',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: primaryDark,
+              ),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: _isSyncingCourtData ? null : _triggerCourtSync,
+              icon: _isSyncingCourtData
+                  ? SizedBox(
+                      height: 14,
+                      width: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: accentBlue,
+                      ),
+                    )
+                  : Icon(Icons.refresh, color: accentBlue, size: 18),
+              label: Text(
+                _isSyncingCourtData ? 'Syncing...' : 'Sync Now',
+                style: TextStyle(color: accentBlue, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0F2FE),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Court data is fetched from configured sources and expected to refresh daily after 6:00 PM.',
+            style: TextStyle(fontSize: 12.5, color: Color(0xFF0C4A6E), fontWeight: FontWeight.w500),
+          ),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<List<CourtLiveUpdate>>(
+          stream: _courtUpdatesService.streamClientCourtUpdates(clientId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final updates = snapshot.data ?? const <CourtLiveUpdate>[];
+            if (updates.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Text(
+                  'No court-board data available yet. Once scraper updates run, your case timing, queue number, order and scheduling will appear here.',
+                  style: TextStyle(color: Colors.black54, height: 1.35),
+                ),
+              );
+            }
+
+            return Column(
+              children: updates.map(_buildCourtUpdateCard).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _allCourtsDisplayToggleSection(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'All Courts Display Number Mechanism',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: primaryDark,
+                  ),
+                ),
+              ),
+              Switch.adaptive(
+                value: _showAllCourtsDisplayNumbers,
+                activeThumbColor: accentBlue,
+                onChanged: (value) {
+                  setState(() => _showAllCourtsDisplayNumbers = value);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Enable to view all courts that publish display numbers, case timings and case order from web sources.',
+            style: TextStyle(fontSize: 12.5, color: Colors.black54),
+          ),
+          if (_showAllCourtsDisplayNumbers) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CourtsDisplayBoardScreen()),
+                  );
+                },
+                icon: const Icon(Icons.monitor_heart_outlined),
+                label: const Text('Open All Courts Live Display Board'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCourtUpdateCard(CourtLiveUpdate update) {
+    final timeFormat = DateFormat('dd MMM, hh:mm a');
+    final hearingText = update.hearingTime == null
+        ? 'Not published'
+        : timeFormat.format(update.hearingTime!.toLocal());
+    final scheduleText = update.nextScheduledAt == null
+        ? 'Not scheduled'
+        : timeFormat.format(update.nextScheduledAt!.toLocal());
+    final updatedAtText = update.lastUpdatedAt == null
+        ? 'Pending first sync'
+        : timeFormat.format(update.lastUpdatedAt!.toLocal());
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${update.caseNumber} • ${update.courtName}',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                ),
+              ),
+              _statusChip(
+                label: update.hasDisplayBoard ? 'Display Board' : 'No Display Board',
+                color: update.hasDisplayBoard ? const Color(0xFF15803D) : const Color(0xFFB45309),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(update.caseTitle, style: const TextStyle(color: Colors.black87, fontSize: 13.5)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _metricPill('Timing', hearingText),
+              _metricPill('Queue #', update.queueNumber?.toString() ?? 'NA'),
+              _metricPill('Case Order', update.caseOrder?.toString() ?? 'NA'),
+              _metricPill('Scheduling', scheduleText),
+              _metricPill(
+                'Category',
+                update.isReportable
+                    ? 'Reportable'
+                    : (update.isUnreportable ? 'Unreportable' : 'Not tagged'),
+              ),
+            ],
+          ),
+          if (!update.hasDisplayBoard && update.isDistrictCourt) ...[
+            const SizedBox(height: 10),
+            const Text(
+              'District court board is unavailable. Status shown from scheduling updates and latest listing data.',
+              style: TextStyle(fontSize: 12.5, color: Colors.black54),
+            ),
+          ],
+          if ((update.boardText ?? '').isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              update.boardText!,
+              style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Last update: $updatedAtText',
+                  style: const TextStyle(fontSize: 12, color: Colors.black45),
+                ),
+              ),
+              if ((update.sourceUrl ?? '').isNotEmpty)
+                TextButton(
+                  onPressed: () => _openSource(update.sourceUrl!),
+                  child: Text('Source', style: TextStyle(color: accentBlue)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricPill(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  Widget _statusChip({required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Future<void> _triggerCourtSync() async {
+    final clientId = FirebaseAuth.instance.currentUser?.uid;
+    if (clientId == null || _isSyncingCourtData) return;
+
+    setState(() => _isSyncingCourtData = true);
+    await _courtUpdatesService.triggerScraperSync(clientId: clientId);
+    if (mounted) {
+      setState(() => _isSyncingCourtData = false);
+    }
+  }
+
+  Future<void> _openSource(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   Widget _emptyConversations() {
     return Container(
       width: double.infinity,
@@ -465,5 +790,29 @@ class ClientDashboardScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // ✅ ADDED: Helper to sync scheduled cases to local notifications
+  void _syncNotifications(List<QueryDocumentSnapshot> docs) {
+    for (var doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+
+      // Check if the lawyer has scheduled a date and the status is correct
+      if (data['scheduledDate'] != null && data['status'] == 'scheduled') {
+        DateTime scheduledTime = (data['scheduledDate'] as Timestamp).toDate();
+
+        // Only schedule if the hearing time is in the future
+        if (scheduledTime.isAfter(DateTime.now())) {
+          NotificationService.scheduleCaseNotification(
+            caseId: doc.id,
+            title: "Your Case Hearing",
+            body: "Case No: ${data['caseNumber'] ?? doc.id.substring(0, 5).toUpperCase()}",
+            description: "Reminder for your upcoming hearing with Adv. ${data['lawyerName']}.",
+            scheduledTime: scheduledTime,
+            notificationId: doc.id.hashCode, clientName: '',
+          );
+        }
+      }
+    }
   }
 }

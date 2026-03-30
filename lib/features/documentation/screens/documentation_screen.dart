@@ -6,7 +6,6 @@ import 'legal_notices_screen.dart';
 import 'agreements_screen.dart';
 import 'attorney_screen.dart';
 import 'package:legal_case_manager/features/client/screens/client_dashboard.dart';
-import '../../../common/widgets/dashboard_widgets.dart';
 import 'package:legal_case_manager/features/profile/screens/profile_screen.dart';
 
 class DocumentationScreen extends StatefulWidget {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -154,7 +155,9 @@ class ChatScreen extends StatelessWidget {
                   const SnackBar(content: Text("Message deleted")),
                 );
               } catch (e) {
-                debugPrint("Error deleting message: $e");
+                if (kDebugMode) {
+                  debugPrint("Error deleting message: $e");
+                }
               }
             },
             child: const Text("Delete", style: TextStyle(color: Colors.red)),

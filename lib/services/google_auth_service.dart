@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, debugPrint;
 
 class GoogleAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -46,7 +46,9 @@ class GoogleAuthService {
         return userCredential.user;
       }
     } catch (e) {
-      print("Google Sign-In Error: $e");
+      if (kDebugMode) {
+        debugPrint("Google Sign-In Error: $e");
+      }
       // If we still see a null check error, provide a more descriptive message.
       if (e.toString().contains('Null check operator')) {
         throw 'Initialization error: Ensure Google Auth is correctly enabled in your Firebase Console.';
@@ -62,7 +64,9 @@ class GoogleAuthService {
         await _googleSignIn?.signOut();
       }
     } catch (e) {
-      print("Sign Out Error: $e");
+      if (kDebugMode) {
+        debugPrint("Sign Out Error: $e");
+      }
     }
   }
 }

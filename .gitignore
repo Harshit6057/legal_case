@@ -5,6 +5,7 @@
 *.swp
 .DS_Store
 .atom/
+.env
 .build/
 .buildlog/
 .history
@@ -43,3 +44,23 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase and sensitive configs (auto-generated)
+android/app/google-services.json
+ios/GoogleService-Info.plist
+android/local.properties
+.env.local
+.env.*.local
+
+# Debug and test artifacts
+*_raw.html
+*_chunk.js
+Deadline/
+*.png
+*.jpg
+flutter_01.png
+images.jpg
+
+# Firebase RC files (optional - contains project IDs)
+.firebaserc
+firebase.json

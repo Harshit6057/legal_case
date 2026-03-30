@@ -30,6 +30,7 @@ class NewRequestsScreen extends StatelessWidget {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     final lawyerId = FirebaseAuth.instance.currentUser!.uid;
 

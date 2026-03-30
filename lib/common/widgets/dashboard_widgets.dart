@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../state/avatar_cache.dart';
@@ -143,7 +144,7 @@ class DashboardHeader extends StatelessWidget {
 
                 // 2. Use safe data extraction
                 final matches = snapshot.docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final data = doc.data();
 
                   // Safe check: if field is missing, use empty string
                   final name = (data['name'] ?? "").toString().toLowerCase();
@@ -156,7 +157,7 @@ class DashboardHeader extends StatelessWidget {
                 }).toList();
 
                 return matches.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final data = doc.data();
                   return ListTile(
                     leading: const CircleAvatar(
                       child: Icon(Icons.person),
@@ -175,7 +176,9 @@ class DashboardHeader extends StatelessWidget {
                   );
                 }).toList();
               } catch (e) {
-                debugPrint("Search Error: $e");
+                if (kDebugMode) {
+                  debugPrint("Search Error: $e");
+                }
                 return [const ListTile(title: Text("Error fetching results"))];
               }
             },

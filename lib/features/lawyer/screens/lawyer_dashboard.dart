@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:legal_case_manager/common/widgets/dashboard_widgets.dart';
 import 'new_requests_screen.dart';
 import '../../../features/lawyer/screens/lawyer_profile_edit_screen.dart';
 import '../../../features/lawyer/screens/active_cases_screen.dart';

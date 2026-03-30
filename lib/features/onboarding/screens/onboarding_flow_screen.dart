@@ -36,25 +36,17 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
             Expanded(
               child: PageView(
                 controller: _controller,
-
-                // ✅ REQUIRED FOR SWIPE
-                physics: const BouncingScrollPhysics(), // iOS-like smooth swipe
-                // OR use: const PageScrollPhysics(),
-
-                // ✅ Improves gesture reliability
+                physics: const BouncingScrollPhysics(),
                 allowImplicitScrolling: true,
-
                 onPageChanged: (index) {
                   setState(() => _currentIndex = index);
                 },
-
                 children: const [
                   _PageOne(),
                   _PageTwo(),
                   _PageThree(),
                 ],
               ),
-
             ),
 
             /// PAGE INDICATORS
@@ -62,7 +54,7 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 3,
-                    (index) => _indicator(isActive: _currentIndex == index),
+                (index) => _indicator(isActive: _currentIndex == index),
               ),
             ),
 
@@ -120,10 +112,9 @@ class _PageOne extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _BasePage(
+    return const _BasePage(
       image: 'assets/images/Character.png',
-      text:
-      'Find all types of legal services in one app, with an easy process and multiple benefits.',
+      text: 'Find all types of legal services in one app, with an easy process and multiple benefits.',
     );
   }
 }
@@ -133,131 +124,90 @@ class _PageTwo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          const SizedBox(height: 155),
-
-          /// 🔥 STACKED ILLUSTRATION (FIXED HEIGHT)
-          SizedBox(
-            height: height * 0.35, // 👈 same visual height as other pages
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                /// Top-right image (human + documents)
-                Positioned(
-                  top: 10,
-                  right: 8,
-                  child: Image.asset(
-                    'assets/images/Frame (1).png',
-                    width: 200,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-
-                /// Bottom-left image (robot)
-                Positioned(
-                  bottom: 20,
-                  left: 20,
-                  child: Image.asset(
-                    'assets/images/Frame.png',
-                    width: 150,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          /// TEXT
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              'Enter the name of your city and the type of consultant you’re looking for, and our AI bot will select the best candidate.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-
-          const Spacer(flex: 2),
-        ],
-      ),
+    return const _BasePage(
+      isStacked: true,
+      text: 'Enter the name of your city and the type of consultant you’re looking for, and our AI bot will select the best candidate.',
     );
   }
 }
-
 
 class _PageThree extends StatelessWidget {
   const _PageThree();
 
   @override
   Widget build(BuildContext context) {
-    return _BasePage(
+    return const _BasePage(
       image: 'assets/images/image 1.png',
-      text:
-      'Choose the best verified lawyer profiles in your area based on qualifications, experience, and reviews.',
+      text: 'Choose the best verified lawyer profiles in your area based on qualifications, experience, and reviews.',
     );
   }
 }
 
-
 class _BasePage extends StatelessWidget {
-  final String image;
+  final String? image;
   final String text;
+  final bool isStacked;
 
   const _BasePage({
-    required this.image,
+    this.image,
     required this.text,
+    this.isStacked = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          const SizedBox(height: 180),
-
-          /// IMAGE (FIXED + CONSISTENT SIZE)
-          SizedBox(
-            height: height * 0.32, // 👈 controls image size
-            child: Center(
-              child: Image.asset(
-                image,
-                fit: BoxFit.contain,
-              ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 60),
+            SizedBox(
+              height: 300,
+              child: isStacked
+                  ? Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned(
+                          top: 10,
+                          right: 8,
+                          child: Image.asset(
+                            'assets/images/Frame (1).png',
+                            width: 200,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 20,
+                          left: 20,
+                          child: Image.asset(
+                            'assets/images/Frame.png',
+                            width: 150,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Center(
+                      child: Image.asset(
+                        image!,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
             ),
-          ),
-
-          const SizedBox(height: 24),
-
-          /// TEXT (CONTROLLED WIDTH)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
+            const SizedBox(height: 40),
+            Text(
               text,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 height: 1.5,
                 color: Colors.black87,
               ),
             ),
-          ),
-
-          const Spacer(flex: 2), // pushes content up cleanly
-        ],
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }

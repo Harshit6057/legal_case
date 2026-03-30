@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:legal_case_manager/services/chatbot_service.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class LegalChatbotScreen extends StatefulWidget {
   const LegalChatbotScreen({super.key});
@@ -37,7 +38,14 @@ class _LegalChatbotScreenState extends State<LegalChatbotScreen> {
     _controller.clear();
     _scrollToBottom();
 
-    String response = await ChatbotService.getAIResponse(text);
+    // Create a chat history list
+    List<Content> chatHistory = _messages.map((message) {
+      return message["role"] == "user"
+          ? Content.text(message["content"]!)
+          : Content.text(message["content"]!);
+    }).toList();
+
+    String response = await ChatbotService.getAIResponse(text, chatHistory);
 
     setState(() {
       _isLoading = false;
