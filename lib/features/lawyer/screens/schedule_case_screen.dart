@@ -15,7 +15,6 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _clientName;
-  String? _lawyerName;
   String? _clientId;
   String? _caseDescription;
   bool _isDataLoaded = false;
@@ -37,7 +36,6 @@ class _ScheduleCaseScreenState extends State<ScheduleCaseScreen> {
         final data = doc.data()!;
         setState(() {
           _clientName = data['clientName'];
-          _lawyerName = data['lawyerName'];
           _clientId = data['clientId'];
           _caseDescription = data['description'];
           _isDataLoaded = true;

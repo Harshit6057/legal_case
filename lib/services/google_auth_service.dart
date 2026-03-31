@@ -11,21 +11,34 @@ class GoogleAuthService {
   // if the Client ID is not found in index.html.
   static final GoogleSignIn? _googleSignIn = kIsWeb ? null : GoogleSignIn();
 
+  GoogleAuthProvider _buildWebProvider() {
+    final provider = GoogleAuthProvider();
+    provider.setCustomParameters({'prompt': 'select_account'});
+    return provider;
+  }
+
   Future<User?> signInWithGoogle() async {
     try {
       if (kIsWeb) {
-        // ✅ For Web: Use Firebase's native popup.
-        // This is the recommended way for Firebase Hosting.
-        // It DOES NOT require the google_sign_in package configuration.
-        GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        
-        // Force account selection
-        googleProvider.setCustomParameters({
-          'prompt': 'select_account'
-        });
+        final googleProvider = _buildWebProvider();
 
-        final UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
-        return userCredential.user;
+        // If the browser was redirected back from Google auth, return that user.
+        final redirectResult = await _auth.getRedirectResult();
+        if (redirectResult.user != null) {
+          return redirectResult.user;
+        }
+
+        try {
+          final userCredential = await _auth.signInWithPopup(googleProvider);
+          return userCredential.user;
+        } on FirebaseAuthException catch (e) {
+          // Some browsers/webviews block popups; redirect flow is more reliable there.
+          if (e.code == 'popup-blocked' || e.code == 'operation-not-supported-in-this-environment') {
+            await _auth.signInWithRedirect(googleProvider);
+            return null;
+          }
+          rethrow;
+        }
       } else {
         // ✅ For Mobile: Use the package normally.
         if (_googleSignIn == null) return null; // Should never happen on mobile

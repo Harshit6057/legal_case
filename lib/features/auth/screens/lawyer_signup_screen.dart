@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:legal_case_manager/features/auth/screens/lawyer_login_screen.dart';
 import 'package:legal_case_manager/services/auth_service.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 
@@ -15,6 +16,14 @@ class LawyerSignupScreen extends StatefulWidget {
 }
 
 class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
+  static String get _geminiApiKey {
+    final key = dotenv.env['GEMINI_API_KEY'];
+    if (key == null || key.isEmpty) {
+      throw Exception('GEMINI_API_KEY not configured in .env file');
+    }
+    return key;
+  }
+
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _nameController = TextEditingController();
@@ -42,15 +51,6 @@ class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
   String? _selectedDistrict;
   bool _obscurePassword = true;
   bool _isProcessingOCR = false;
-
-  final List<String> _states = ['Maharashtra', 'Delhi', 'Karnataka', 'Gujarat', 'Uttar Pradesh'];
-  final Map<String, List<String>> _districts = {
-    'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane'],
-    'Delhi': ['North Delhi', 'South Delhi', 'Central Delhi', 'West Delhi'],
-    'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi'],
-    'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
-    'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Prayagraj'],
-  };
 
   @override
   void dispose() {
@@ -121,7 +121,7 @@ class _LawyerSignupScreenState extends State<LawyerSignupScreen> {
     try {
       final model = GenerativeModel(
         model: 'gemini-2.5-flash', // ✅ Fixed: Use gemini-1.5-flash (not 2.5)
-        apiKey: 'AIzaSyDvvT7-BYY6lu4k8MLULnGx9PEISfOzTWA',
+        apiKey: _geminiApiKey,
       );
 
       final bytes = await imageFile.readAsBytes();

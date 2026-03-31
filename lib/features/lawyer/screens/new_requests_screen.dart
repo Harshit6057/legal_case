@@ -6,8 +6,6 @@ import '../../chat/screens/chat_screen.dart';
 class NewRequestsScreen extends StatelessWidget {
   const NewRequestsScreen({super.key});
 
-  @override
-
   Widget _actionButton({
     required IconData icon,
     required String label,
@@ -65,7 +63,6 @@ class NewRequestsScreen extends StatelessWidget {
               final data = doc.data() as Map<String, dynamic>;
 
               final clientName = data['clientName'] ?? 'Client';
-              final clientId = data['clientId'] ?? '';
               final specialization = (data['specialization'] ?? '').toString().toUpperCase();
 
               return Card(
@@ -193,6 +190,7 @@ class NewRequestsScreen extends StatelessWidget {
   }
 
   // ================= REPLY POPUP LOGIC =================
+  // ignore: unused_element
   void _showReplyPopup(BuildContext context, String clientId, String clientName, String lawyerId) {
     final TextEditingController replyController = TextEditingController();
 

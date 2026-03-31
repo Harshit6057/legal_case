@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:legal_case_manager/services/chatbot_service.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:legal_case_manager/features/lawyer/screens/lawyer_profile_view_screen.dart';
 
 class LegalChatbotScreen extends StatefulWidget {
   const LegalChatbotScreen({super.key});
@@ -123,16 +125,96 @@ class _LegalChatbotScreenState extends State<LegalChatbotScreen> {
             BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2)),
           ],
         ),
-        child: Text(
-          message,
-          style: TextStyle(
-            color: isUser ? Colors.white : const Color(0xFF1E293B),
+        child: _buildMessageContent(isUser, message),
+      ),
+    );
+  }
+
+  Widget _buildMessageContent(bool isUser, String message) {
+    if (isUser) {
+      return SelectableText(
+        message,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+          height: 1.4,
+        ),
+      );
+    }
+
+    final profileLinkPattern = RegExp(r'app://lawyer-profile/([A-Za-z0-9_-]+)');
+    final matches = profileLinkPattern.allMatches(message).toList();
+
+    if (matches.isEmpty) {
+      return SelectableText(
+        message,
+        style: const TextStyle(
+          color: Color(0xFF1E293B),
+          fontSize: 15,
+          height: 1.4,
+        ),
+      );
+    }
+
+    final spans = <TextSpan>[];
+    int cursor = 0;
+
+    for (final match in matches) {
+      if (match.start > cursor) {
+        spans.add(
+          TextSpan(
+            text: message.substring(cursor, match.start),
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+        );
+      }
+
+      final lawyerId = match.group(1);
+      if (lawyerId != null && lawyerId.isNotEmpty) {
+        spans.add(
+          TextSpan(
+            text: 'Open Profile',
+            style: const TextStyle(
+              color: Color(0xFF1D4ED8),
+              fontSize: 15,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.underline,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LawyerProfileViewScreen(lawyerId: lawyerId),
+                  ),
+                );
+              },
+          ),
+        );
+      }
+
+      cursor = match.end;
+    }
+
+    if (cursor < message.length) {
+      spans.add(
+        TextSpan(
+          text: message.substring(cursor),
+          style: const TextStyle(
+            color: Color(0xFF1E293B),
             fontSize: 15,
             height: 1.4,
           ),
         ),
-      ),
-    );
+      );
+    }
+
+    return SelectableText.rich(TextSpan(children: spans));
   }
 
   Widget _buildInputArea() {
@@ -153,6 +235,10 @@ class _LegalChatbotScreenState extends State<LegalChatbotScreen> {
               ),
               child: TextField(
                 controller: _controller,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                minLines: 1,
+                maxLines: 5,
                 decoration: const InputDecoration(
                   hintText: "Ask about law or courts...",
                   border: InputBorder.none,

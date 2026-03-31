@@ -121,7 +121,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 **Before:**
 ```dart
-static const String _apiKey = 'AIzaSyDvvT7-BYY6lu4k8MLULnGx9PEISfOzTWA';
+static const String _apiKey = 'REDACTED_DO_NOT_USE';
 ```
 
 **After:**

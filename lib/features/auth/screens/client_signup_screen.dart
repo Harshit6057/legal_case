@@ -131,7 +131,7 @@ class _ClientSignupScreenState extends State<ClientSignupScreen> {
     }
 
     try {
-      final user = await AuthService().signUp(
+      await AuthService().signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         role: 'client',

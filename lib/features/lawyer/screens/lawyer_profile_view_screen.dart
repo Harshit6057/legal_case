@@ -88,6 +88,7 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
     });
   }
 
+  // ignore: unused_element
   void _showHearingTypeDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -557,6 +558,7 @@ class _LawyerProfileViewScreenState extends State<LawyerProfileViewScreen> {
 
   // ✅ 1. Integrated Booking Dialog with Hearing Selection
   // ✅ Step 1: Selection Dialog
+  // ignore: unused_element
   Future<void> _showBookingDialog(BuildContext context, Map<String, dynamic> lawyerData) async {
     final TextEditingController descriptionController = TextEditingController();
     String? selectedHearing;

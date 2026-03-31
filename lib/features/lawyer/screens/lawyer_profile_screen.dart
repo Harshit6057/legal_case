@@ -140,7 +140,6 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
             final name = data['name'] ?? 'Lawyer';
             final specialization = data['specialization'] ?? '';
-            final verified = data['verified'] == true;
             final experience = data['experience'] ?? 0;
             final cases = data['cases'] ?? 0;
             final rating = data['rating'] ?? 0.0;
