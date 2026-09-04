@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:legal_case_manager/features/client/models/court_display_board_item.dart';
 import 'package:legal_case_manager/features/client/services/court_live_updates_service.dart';
@@ -78,71 +79,83 @@ class _CourtsDisplayBoardScreenState extends State<CourtsDisplayBoardScreen> {
       ),
       body: Column(
         children: [
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0F2FE),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text(
-              'This page shows official Supreme/High Court display boards. Auto-sync runs every 30 seconds.',
-              style: TextStyle(color: Color(0xFF0C4A6E), fontWeight: FontWeight.w600, fontSize: 12.5),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: DropdownButtonFormField<String>(
-              initialValue: _selectedCourtKey,
-              decoration: InputDecoration(
-                labelText: 'Select Court Display Board',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: [
-                const DropdownMenuItem(value: 'all', child: Text('All Official Courts')),
-                ...sources.map(
-                  (source) => DropdownMenuItem(
-                    value: source.courtKey,
-                    child: Text(source.courtName),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'This page shows official Supreme/High Court display boards. Auto-sync runs every 30 seconds.',
+                      style: TextStyle(color: Color(0xFF0C4A6E), fontWeight: FontWeight.w600, fontSize: 12.5),
+                    ),
                   ),
-                ),
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _selectedCourtKey = value);
-                _loadBoards();
-              },
-            ),
-          ),
-          SizedBox(
-            height: 44,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              children: [
-                _linkChip('eCourts Services', 'https://services.ecourts.gov.in/'),
-                _linkChip('HC Services', 'https://hcservices.ecourts.gov.in/'),
-                ...sources.map((source) => _linkChip(source.courtName, source.displayBoardUrl)),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _selectedCourtKey,
+                      decoration: InputDecoration(
+                        labelText: 'Select Court Display Board',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: 'all', child: Text('All Official Courts')),
+                        ...sources.map(
+                          (source) => DropdownMenuItem(
+                            value: source.courtKey,
+                            child: Text(source.courtName),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => _selectedCourtKey = value);
+                        _loadBoards();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    height: 44,
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _linkChip('eCourts Services', 'https://services.ecourts.gov.in/'),
+                        _linkChip('HC Services', 'https://hcservices.ecourts.gov.in/'),
+                        ...sources.map((source) => _linkChip(source.courtName, source.displayBoardUrl)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _items.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(24),
                           child: Text(
-                            'No court display-number data found. Configure court source URLs in Firestore collection court_board_sources.',
+                            kIsWeb
+                                ? 'No court display-number data found on web. Add a CORS-safe proxy using .env key COURT_BOARD_PROXY_URL and configure Firestore collection court_board_sources.'
+                                : 'No court display-number data found. Configure court source URLs in Firestore collection court_board_sources.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.black54),
+                            style: const TextStyle(color: Colors.black54),
                           ),
                         ),
                       )

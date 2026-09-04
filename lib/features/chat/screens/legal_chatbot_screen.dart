@@ -82,36 +82,44 @@ class _LegalChatbotScreenState extends State<LegalChatbotScreen> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              itemCount: _messages.length,
-              itemBuilder: (context, i) {
-                final isUser = _messages[i]['role'] == 'user';
-                return _buildChatBubble(isUser, _messages[i]['content']!);
-              },
-            ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, i) {
+                    final isUser = _messages[i]['role'] == 'user';
+                    return _buildChatBubble(isUser, _messages[i]['content']!);
+                  },
+                ),
+              ),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.only(left: 20, bottom: 10),
+                  child: Align(alignment: Alignment.centerLeft, child: Text("Legal AI is typing...", style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic))),
+                ),
+              _buildInputArea(),
+            ],
           ),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.only(left: 20, bottom: 10),
-              child: Align(alignment: Alignment.centerLeft, child: Text("Legal AI is typing...", style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic))),
-            ),
-          _buildInputArea(),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildChatBubble(bool isUser, String message) {
+    final width = MediaQuery.of(context).size.width;
+    final bubbleMaxWidth = width > 900 ? 680.0 : width * 0.78;
+
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isUser ? const Color(0xFF2563EB) : Colors.white,
@@ -122,7 +130,7 @@ class _LegalChatbotScreenState extends State<LegalChatbotScreen> {
             bottomRight: Radius.circular(isUser ? 0 : 16),
           ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5, offset: const Offset(0, 2)),
           ],
         ),
         child: _buildMessageContent(isUser, message),
@@ -218,11 +226,13 @@ class _LegalChatbotScreenState extends State<LegalChatbotScreen> {
   }
 
   Widget _buildInputArea() {
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
+      padding: EdgeInsets.fromLTRB(16, 10, 16, isDesktop ? 16 : 30),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), offset: const Offset(0, -2), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), offset: const Offset(0, -2), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -237,6 +247,7 @@ class _LegalChatbotScreenState extends State<LegalChatbotScreen> {
                 controller: _controller,
                 keyboardType: TextInputType.multiline,
                 textInputAction: TextInputAction.newline,
+                onSubmitted: (_) => _handleSend(),
                 minLines: 1,
                 maxLines: 5,
                 decoration: const InputDecoration(

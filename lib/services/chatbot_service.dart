@@ -2,13 +2,14 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:developer' show log;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 
 class ChatbotService {
   /// Loads GEMINI API key from .env file (not hardcoded)
   static String get _apiKey {
-    final key = dotenv.env['GEMINI_API_KEY'];
-    if (key == null || key.isEmpty) {
+    final key =
+        dotenv.env['GEMINI_API_KEY']?.trim() ?? dotenv.env['GEMINI_API_KEY_WEB']?.trim() ?? '';
+    if (key.isEmpty) {
       throw Exception('GEMINI_API_KEY not configured in .env file');
     }
     return key;
@@ -209,13 +210,36 @@ Response format:
       if (kDebugMode) {
         log("Firebase Error: $e");
       }
-      return "Service is temporarily busy. Please retry.";
+      return _buildFallbackResponse(userMessage, reason: 'firebase-error');
     } catch (e) {
       if (kDebugMode) {
         log("AI Error: $e");
       }
-      return "I'm having trouble connecting. Please check your internet and retry.";
+      return _buildFallbackResponse(userMessage, reason: e.toString());
     }
+  }
+
+  static String _buildFallbackResponse(String userMessage, {required String reason}) {
+    final category = identifyCategory(userMessage);
+    final lowerReason = reason.toLowerCase();
+    final missingKey = lowerReason.contains('gemini_api_key');
+
+    final opening = missingKey
+        ? 'AI service key is not configured${kIsWeb ? ' for web' : ''}. Here is immediate legal guidance:'
+        : 'Live AI service is temporarily unavailable. Here is immediate legal guidance:';
+
+    return '''
+$opening
+
+Category detected: $category
+1) Preserve all evidence: land papers, rent/permission terms, payment receipts, possession proof, and chats.
+2) Send a written legal notice through an advocate before filing.
+3) For land/property disputes, check revenue records and encumbrance, then file civil relief (injunction/declaration) as advised.
+4) If forgery/fake ownership documents are involved, request FIR for cheating/forgery sections with document copies.
+5) Track limitation timelines and interim relief urgency (status quo/stay) with a local court specialist.
+
+Next step: share your state, district, and whether possession is currently with you so I can suggest a more precise action path.
+''';
   }
 
   /// ✅ Helper method to identify category from user message

@@ -158,6 +158,11 @@ class CourtLiveUpdatesService {
       allItems.addAll(sourceItems.where((item) => item.hasDisplayNumber));
     }
 
+    // Merge admin-configured Firestore sources so courts added in `court_board_sources`
+    // appear in the same all-courts board UI.
+    final customItems = await fetchCustomFirestoreCourtSources(courtKey: courtKey);
+    allItems.addAll(customItems.where((item) => item.hasDisplayNumber));
+
     allItems.sort((a, b) {
       final aTime = a.updatedAt;
       final bTime = b.updatedAt;
@@ -248,6 +253,7 @@ class CourtLiveUpdatesService {
     int maxAttemptsPerUrl = 2,
   }) async {
     final urls = <String>[primaryUrl, ...fallbackUrls];
+    final proxyBase = dotenv.env['COURT_BOARD_PROXY_URL']?.trim() ?? '';
 
     for (final url in urls) {
       for (var attempt = 0; attempt < maxAttemptsPerUrl; attempt++) {
@@ -258,13 +264,70 @@ class CourtLiveUpdatesService {
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response;
           }
+
+          if (kIsWeb) {
+            final proxied = await _httpGetViaProxy(proxyBase: proxyBase, targetUrl: url, headers: headers);
+            if (proxied != null && proxied.statusCode >= 200 && proxied.statusCode < 300) {
+              return proxied;
+            }
+          }
+
           if (response.statusCode == 403 || response.statusCode == 429) {
             await Future<void>.delayed(const Duration(milliseconds: 400));
             continue;
           }
         } catch (_) {
+          if (kIsWeb) {
+            final proxied = await _httpGetViaProxy(proxyBase: proxyBase, targetUrl: url, headers: headers);
+            if (proxied != null && proxied.statusCode >= 200 && proxied.statusCode < 300) {
+              return proxied;
+            }
+          }
           await Future<void>.delayed(const Duration(milliseconds: 350));
         }
+      }
+    }
+
+    return null;
+  }
+
+  Future<http.Response?> _httpGetViaProxy({
+    required String proxyBase,
+    required String targetUrl,
+    Map<String, String>? headers,
+  }) async {
+    final fallbackProxyUrl = 'https://r.jina.ai/$targetUrl';
+    final candidates = <Uri>[];
+
+    if (proxyBase.isNotEmpty) {
+      try {
+        final proxyUri = Uri.parse(proxyBase);
+        final mergedQuery = <String, String>{
+          ...proxyUri.queryParameters,
+          'url': targetUrl,
+        };
+        candidates.add(proxyUri.replace(queryParameters: mergedQuery));
+      } catch (_) {
+        // ignore malformed custom proxy URL and continue with fallback proxy
+      }
+    }
+
+    try {
+      candidates.add(Uri.parse(fallbackProxyUrl));
+    } catch (_) {
+      return null;
+    }
+
+    for (final uri in candidates) {
+      try {
+        final response = await http
+            .get(uri, headers: headers)
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return response;
+        }
+      } catch (_) {
+        continue;
       }
     }
 
@@ -278,8 +341,9 @@ class CourtLiveUpdatesService {
         'https://delhihighcourt.nic.in/app/physical-display-board?draw=1&start=0&length=120&search[value]=&search[regex]=false';
 
     try {
-      final response = await http.get(
-        Uri.parse(url),
+      final response = await _httpGetWithFallbacks(
+        primaryUrl: url,
+        fallbackUrls: const <String>[],
         headers: {
           'User-Agent': 'Mozilla/5.0',
           'X-Requested-With': 'XMLHttpRequest',
@@ -287,6 +351,10 @@ class CourtLiveUpdatesService {
           'Referer': 'https://delhihighcourt.nic.in/app/physical-display-board',
         },
       );
+
+      if (response == null) {
+        return const <CourtDisplayBoardItem>[];
+      }
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         return const <CourtDisplayBoardItem>[];
@@ -344,14 +412,19 @@ class CourtLiveUpdatesService {
         'https://livedb9010.phhc.gov.in/display_board/public/getRecords?skip=0&limit=500';
 
     try {
-      final response = await http.get(
-        Uri.parse(endpoint),
+      final response = await _httpGetWithFallbacks(
+        primaryUrl: endpoint,
+        fallbackUrls: const <String>[],
         headers: {
           ..._defaultHeaders,
           'Accept': 'application/json,text/plain,*/*',
           'Referer': source.displayBoardUrl,
         },
       );
+
+      if (response == null) {
+        return const <CourtDisplayBoardItem>[];
+      }
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         return const <CourtDisplayBoardItem>[];
@@ -572,17 +645,20 @@ class CourtLiveUpdatesService {
     );
   }
 
-  Future<List<CourtDisplayBoardItem>> fetchCustomFirestoreCourtSources() async {
+  Future<List<CourtDisplayBoardItem>> fetchCustomFirestoreCourtSources({String? courtKey}) async {
     try {
-      final sourcesSnapshot = await _firestore
+      final query = _firestore
           .collection('court_board_sources')
           .where('enabled', isEqualTo: true)
-          .where('hasDisplayBoard', isEqualTo: true)
-          .get();
+          .where('hasDisplayBoard', isEqualTo: true);
+      final sourcesSnapshot = await query.get();
 
       final allItems = <CourtDisplayBoardItem>[];
       for (final doc in sourcesSnapshot.docs) {
         final sourceData = doc.data();
+        if (courtKey != null && (sourceData['courtKey'] ?? '').toString() != courtKey) {
+          continue;
+        }
         final sourceItems = await _scrapeCustomSource(sourceData);
         allItems.addAll(sourceItems.where((item) => item.hasDisplayNumber));
       }
@@ -605,7 +681,15 @@ class CourtLiveUpdatesService {
     final courtType = (sourceData['courtType'] ?? 'Court').toString();
 
     try {
-      final response = await http.get(Uri.parse(sourceUrl));
+      final response = await _httpGetWithFallbacks(
+        primaryUrl: sourceUrl,
+        fallbackUrls: const <String>[],
+        headers: _defaultHeaders,
+      );
+      if (response == null) {
+        return const <CourtDisplayBoardItem>[];
+      }
+
       if (response.statusCode < 200 || response.statusCode >= 300) {
         return const <CourtDisplayBoardItem>[];
       }

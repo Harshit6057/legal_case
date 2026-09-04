@@ -51,30 +51,39 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         backgroundColor: backgroundSlate,
         bottomNavigationBar: _bottomNav(context),
         body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            // ✅ REMOVED 'const' from children to allow method calls
-            children: [
-              const SizedBox(height: 10),
-              const DashboardHeader(),
-              const SizedBox(height: 25),
-              _banner(),
-              const SizedBox(height: 30),
-              // ✅ Pass context to enable 'View All' navigation
-              _sectionTitle(context, 'Legal Services', 'Business Setup'),
-              _servicesGrid(),
-              const SizedBox(height: 30),
-              _sectionTitle(context, 'Find Specialists', 'view_all_specialists'),
-              _lawyerCategoryGrid(context),
-              const SizedBox(height: 30),
-              _allCourtsDisplayToggleSection(context),
-              const SizedBox(height: 20),
-              _courtLiveBoardSection(context),
-              const SizedBox(height: 30),
-              _sectionTitle(context, 'Your Conversations', null),
-              _conversationsSection(),
-              const SizedBox(height: 30),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final contentWidth = constraints.maxWidth >= 1200 ? 1100.0 : constraints.maxWidth;
+              return Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: contentWidth,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    children: [
+                      const SizedBox(height: 10),
+                      const DashboardHeader(),
+                      const SizedBox(height: 25),
+                      _banner(),
+                      const SizedBox(height: 30),
+                      _sectionTitle(context, 'Legal Services', 'Business Setup'),
+                      _servicesGrid(),
+                      const SizedBox(height: 30),
+                      _sectionTitle(context, 'Find Specialists', 'view_all_specialists'),
+                      _lawyerCategoryGrid(context),
+                      const SizedBox(height: 30),
+                      _allCourtsDisplayToggleSection(context),
+                      const SizedBox(height: 20),
+                      _courtLiveBoardSection(context),
+                      const SizedBox(height: 30),
+                      _sectionTitle(context, 'Your Conversations', null),
+                      _conversationsSection(),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -257,12 +266,16 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryDark
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryDark
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           // ✅ This button only appears if routeKey is NOT null
@@ -311,73 +324,79 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       ('Info', Icons.account_balance),
     ];
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0B2B45),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: services.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 1,
-        ),
-        itemBuilder: (context, i) {
-          final serviceTitle = services[i].$1;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width >= 980
+            ? 6
+            : width >= 720
+                ? 4
+                : 3;
+        final mainAxisExtent = width >= 980 ? 98.0 : 108.0;
 
-          return GestureDetector(
-            onTap: () {
-              if (serviceTitle == 'Advice') {
-                // ✅ Redirect to Chatbot Screen
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalChatbotScreen()));
-              }
-              else if (serviceTitle == 'Consultant') {
-                // ✅ Redirect to Lawyers (Specialists Category Screen)
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AllLawyerCategoriesScreen()));
-              }
-              else if (serviceTitle == 'Disputes') {
-                // ✅ Redirect to Criminal Lawyers (Disputes)
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LawyerListScreen(
-                    specialization: 'criminal',
-                    title: 'Criminal Disputes'
-                )));
-              }
-              else if (serviceTitle == 'Info') {
-                // ✅ Redirect to Affidavits Download/Share Screen
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AffidavitInfoScreen()));
-              }
-              else if (serviceTitle == 'Docs') {
-                // ✅ Redirect to existing Documentation Screen
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const DocumentationScreen()));
-              }
-              else {
-                // Default redirection for other services
-                Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceCategoryScreen(title: serviceTitle)));
-              }
-            },
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
-                  child: Icon(services[i].$2, color: Colors.white, size: 24),
-                ),
-                const SizedBox(height: 8),
-                Text(serviceTitle,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
-              ],
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B2B45),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: services.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              mainAxisExtent: mainAxisExtent,
             ),
-          );
-        },
-      ),
+            itemBuilder: (context, i) {
+              final serviceTitle = services[i].$1;
+
+              return GestureDetector(
+                onTap: () {
+                  if (serviceTitle == 'Advice') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalChatbotScreen()));
+                  }
+                  else if (serviceTitle == 'Consultant') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AllLawyerCategoriesScreen()));
+                  }
+                  else if (serviceTitle == 'Disputes') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const LawyerListScreen(
+                        specialization: 'criminal',
+                        title: 'Criminal Disputes'
+                    )));
+                  }
+                  else if (serviceTitle == 'Info') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AffidavitInfoScreen()));
+                  }
+                  else if (serviceTitle == 'Docs') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const DocumentationScreen()));
+                  }
+                  else {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceCategoryScreen(title: serviceTitle)));
+                  }
+                },
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      child: Icon(services[i].$2, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(serviceTitle,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -389,59 +408,72 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       {'title': 'Corporate', 'image': 'assets/images/corporate.png', 'key': 'corporate'},
     ];
 
-    return Row(
-      children: categories.map((item) {
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => LawyerListScreen(
-                        specialization: item['key']!,
-                        title: '${item['title']} Lawyers'
-                    )
-                )
-            ),
-            child: Column(
-              children: [
-                // ✅ Large, clean container for the icon
-                Container(
-                  height: 85,
-                  width: 85,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  child: Image.asset(
-                    item['image']!,
-                    fit: BoxFit.contain,
-                    errorBuilder: (c, e, s) => Icon(Icons.person, color: accentBlue, size: 30),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // ✅ Text is now placed below the container for better visibility
-                Text(
-                    item['title']!,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: primaryDark
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth >= 900
+            ? 170.0
+            : constraints.maxWidth >= 600
+                ? 150.0
+                : 110.0;
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 16,
+          alignment: WrapAlignment.spaceBetween,
+          children: categories.map((item) {
+            return SizedBox(
+              width: cardWidth,
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => LawyerListScreen(
+                            specialization: item['key']!,
+                            title: '${item['title']} Lawyers'
+                        )
                     )
                 ),
-              ],
-            ),
-          ),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 85,
+                      width: 85,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: Image.asset(
+                        item['image']!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (c, e, s) => Icon(Icons.person, color: accentBlue, size: 30),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                        item['title']!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: primaryDark
+                        )
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
